@@ -113,9 +113,9 @@ export class PrismaService
 		});
 	}
 
-	async removeInstance(idInstance: number | bigint): Promise<Instance> {
+	async removeInstance(instanceName: string): Promise<Instance> {
 		return this.instance.delete({
-			where: {idInstance: BigInt(idInstance)},
+			where: {instanceName},
 		});
 	}
 

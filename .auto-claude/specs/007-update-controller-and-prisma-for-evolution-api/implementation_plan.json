@@ -97,7 +97,9 @@
             "command": "grep 'getInstance(instanceName: string)' src/prisma/prisma.service.ts",
             "expected": "Match found"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Updated getInstance() method to use instanceName: string parameter instead of idInstance: number | bigint. The method now queries by the unique instanceName field which aligns with Evolution API patterns.",
+          "updated_at": "2026-01-11T16:41:47.604660+00:00"
         },
         {
           "id": "subtask-1-4",
@@ -501,5 +503,5 @@
   "created_at": "2026-01-11T14:27:12.159Z",
   "updated_at": "2026-01-11T19:00:00.000Z",
   "status": "planned",
-  "last_updated": "2026-01-11T16:41:02.640549+00:00"
+  "last_updated": "2026-01-11T16:41:47.604680+00:00"
 }

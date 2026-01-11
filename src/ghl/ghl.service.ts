@@ -503,60 +503,83 @@ export class GhlService {
 		}
 	}
 
-	public async createGreenApiInstanceForUser(
+	public async createEvolutionInstanceForUser(
 		ghlUserId: string,
-		idInstance: number | bigint,
-		apiTokenInstance: string,
+		instanceName: string,
+		evolutionApiUrl: string,
+		evolutionApiKey: string,
 		name?: string,
 	): Promise<Instance> {
-		this.logger.log(`Creating Green API instance ${idInstance} for User (GHL Location) ${ghlUserId}`);
+		this.logger.log(`Creating Evolution API instance ${instanceName} for User (GHL Location) ${ghlUserId}`);
 
 		const ghlUser = await this.prisma.findUser(ghlUserId);
-		if (!ghlUser) throw new NotFoundError(`User (GHL Location) ${ghlUserId} not found.`);
-
-		const greenApiClient = this.createGreenApiClient({idInstance: BigInt(idInstance), apiTokenInstance});
-		let waSettings: WaSettings;
-		try {
-			waSettings = await greenApiClient.getWaSettings();
-		} catch (error) {
-			this.logger.warn(`Failed to get WA settings for new instance ${idInstance}: ${error.message}.`);
-			throw new IntegrationError("Invalid instance credentials", "INVALID_CREDENTIALS", 400);
+		if (!ghlUser) {
+			throw new HttpException(`User (GHL Location) ${ghlUserId} not found.`, HttpStatus.NOT_FOUND);
 		}
 
+		// Create Evolution API client with provided credentials
+		const evolutionClient = new EvolutionApiClient(evolutionApiUrl, evolutionApiKey);
+
+		// Verify connection by getting connection state
+		let connectionState: { state: string; statusReason?: string };
+		try {
+			connectionState = await evolutionClient.getConnectionState(instanceName);
+		} catch (error) {
+			this.logger.warn(`Failed to get connection state for instance ${instanceName}: ${error.message}.`);
+			throw new HttpException("Invalid instance credentials or instance not found", HttpStatus.BAD_REQUEST);
+		}
+
+		// Map Evolution state to database state: 'open' -> 'authorized', others -> 'notAuthorized'
+		const mappedState = connectionState.state === "open" ? "authorized" : "notAuthorized";
+		this.logger.log(`Instance ${instanceName} connection state: ${connectionState.state} -> ${mappedState}`);
+
+		// Configure webhook URL
 		const appBaseUrl = this.configService.get<string>("APP_URL");
 		const webhookToken = randomBytes(16).toString("hex");
-		const settings: Settings = {
-			webhookUrl: `${appBaseUrl}/webhooks/green-api`,
+		const webhookUrl = `${appBaseUrl}/webhooks/evolution`;
+
+		// Store Evolution API settings including credentials
+		const settings = {
+			webhookUrl,
 			webhookUrlToken: webhookToken,
-			incomingWebhook: "yes",
-			incomingCallWebhook: "yes",
-			stateWebhook: "yes",
-			wid: waSettings?.phone ? `${waSettings.phone}@c.us` : undefined,
+			evolutionApiUrl,
+			evolutionApiKey,
+			instanceName,
 		};
+
+		// Generate a unique idInstance from instanceName for database compatibility
+		// Using a hash of the instanceName to create a consistent BigInt
+		const instanceHash = BigInt("0x" + Buffer.from(instanceName).toString("hex").slice(0, 15).padEnd(15, "0"));
 
 		try {
 			const dbInstance = await this.prisma.createInstance({
-				idInstance: BigInt(idInstance),
-				apiTokenInstance,
+				idInstance: instanceHash,
+				apiTokenInstance: evolutionApiKey, // Store API key for compatibility
 				user: {
-					connect: {id: ghlUserId},
+					connect: { id: ghlUserId },
 				},
 				settings,
-				stateInstance: waSettings?.stateInstance || "notAuthorized",
-				name: name || `WhatsApp ${idInstance}`,
+				stateInstance: mappedState as "authorized" | "notAuthorized",
+				name: name || `WhatsApp ${instanceName}`,
 			});
-			this.logger.log(`Instance ${idInstance} record created for User (Loc) ${ghlUserId}. DB ID: ${dbInstance.id}`);
+			this.logger.log(`Instance ${instanceName} record created for User (Loc) ${ghlUserId}. DB ID: ${dbInstance.id}`);
 
+			// Register webhook with Evolution API
 			try {
-				await greenApiClient.setSettings(settings);
-				this.logger.log(`Applied initial settings to Green API instance ${idInstance}.`);
+				await evolutionClient.setWebhook(instanceName, {
+					url: webhookUrl,
+					webhookByEvents: true,
+					webhookBase64: false,
+					events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE"],
+				});
+				this.logger.log(`Webhook registered for Evolution API instance ${instanceName}.`);
 			} catch (error) {
-				this.logger.error(`Failed to apply initial settings to Green API instance ${idInstance}: ${error.message}. DB record exists.`);
+				this.logger.error(`Failed to register webhook for Evolution API instance ${instanceName}: ${error.message}. DB record exists.`);
 			}
 			return dbInstance;
 		} catch (error) {
-			this.logger.error(`Failed to create Green API instance ${idInstance} for User ${ghlUserId}: ${error.message}`, error.stack);
-			throw new IntegrationError("Failed to create instance", "INSTANCE_CREATION_ERROR", 500);
+			this.logger.error(`Failed to create Evolution API instance ${instanceName} for User ${ghlUserId}: ${error.message}`, error.stack);
+			throw new HttpException("Failed to create instance", HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 

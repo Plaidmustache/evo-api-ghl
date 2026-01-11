@@ -1,15 +1,6 @@
 import { Injectable, HttpException, HttpStatus, BadRequestException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import axios, { AxiosInstance, AxiosError } from "axios";
-import {
-	BaseAdapter,
-	GreenApiWebhook,
-	WebhookType,
-	IntegrationError,
-	NotFoundError,
-	Settings, StateInstanceWebhook,
-	WaSettings, SendResponse, SendInteractiveButtonsReply, formatPhoneNumber,
-} from "@green-api/greenapi-integration";
 import { GhlTransformer } from "./ghl.transformer";
 import { PrismaService } from "../prisma/prisma.service";
 import { GhlWebhookDto } from "./dto/ghl-webhook.dto";
@@ -22,15 +13,9 @@ import {
 	GhlPlatformMessage,
 	MessageStatusPayload, WorkflowActionData, WorkflowActionResult,
 } from "../types";
-import { SendInteractiveButtons } from "@green-api/greenapi-integration/dist/types/types";
 
 @Injectable()
-export class GhlService extends BaseAdapter<
-	GhlWebhookDto,
-	GhlPlatformMessage,
-	User,
-	Instance
-> {
+export class GhlService {
 	private readonly ghlApiBaseUrl = "https://services.leadconnectorhq.com";
 	private readonly ghlApiVersion = "2021-07-28";
 
@@ -39,7 +24,6 @@ export class GhlService extends BaseAdapter<
 		protected readonly prisma: PrismaService,
 		private readonly configService: ConfigService,
 	) {
-		super(ghlTransformer, prisma);
 	}
 
 	private async getHttpClient(ghlUserId: string): Promise<AxiosInstance> {

@@ -168,7 +168,9 @@
             "command": "grep -E 'updateInstance.*(instanceName: string)' src/prisma/prisma.service.ts | wc -l",
             "expected": "3"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Updated all three methods to use instanceName: string parameter instead of idInstance: number | bigint. Changed where clauses from {idInstance: BigInt(idInstance)} to {instanceName}. Verification passed (3 methods updated).",
+          "updated_at": "2026-01-11T16:43:19.061527+00:00"
         }
       ]
     },
@@ -505,5 +507,5 @@
   "created_at": "2026-01-11T14:27:12.159Z",
   "updated_at": "2026-01-11T19:00:00.000Z",
   "status": "planned",
-  "last_updated": "2026-01-11T16:42:24.660205+00:00"
+  "last_updated": "2026-01-11T16:43:19.061541+00:00"
 }

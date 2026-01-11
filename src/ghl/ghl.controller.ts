@@ -7,11 +7,13 @@ import {
 	Body,
 	Param,
 	HttpException,
-	HttpStatus, Req, UseGuards,
+	HttpStatus,
+	Req,
+	UseGuards,
+	Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { GhlService } from "./ghl.service";
-import { GreenApiLogger } from "@green-api/greenapi-integration";
 import { AuthReq } from "../types";
 import { GhlContextGuard } from "./guards/ghl-context.guard";
 
@@ -29,7 +31,7 @@ interface UpdateInstanceDto {
 @Controller("api/instances")
 @UseGuards(GhlContextGuard)
 export class GhlController {
-	private readonly logger = GreenApiLogger.getInstance(GhlController.name);
+	private readonly logger = new Logger(GhlController.name);
 
 	constructor(
 		private readonly prisma: PrismaService,

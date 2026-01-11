@@ -176,4 +176,32 @@ export class EvolutionApiClient {
 			throw error;
 		}
 	}
+
+	/**
+	 * Gets the connection state of a WhatsApp instance.
+	 * @param instance - The Evolution API instance name
+	 * @returns The connection state response containing instance name and state (open, close, or connecting)
+	 * @throws HttpException if the API request fails
+	 */
+	async getConnectionState(instance: string): Promise<ConnectionStateResponse> {
+		this.logger.log(`Getting connection state for instance ${instance}`);
+
+		try {
+			const { data } = await this.httpClient.get<ConnectionStateResponse>(
+				`/instance/connectionState/${instance}`,
+			);
+
+			this.logger.log(
+				`Connection state for instance ${instance}: ${data.state}`,
+			);
+
+			return data;
+		} catch (error) {
+			// Error is already handled by the interceptor, just re-throw
+			this.logger.error(
+				`Failed to get connection state for instance ${instance}: ${error.message}`,
+			);
+			throw error;
+		}
+	}
 }

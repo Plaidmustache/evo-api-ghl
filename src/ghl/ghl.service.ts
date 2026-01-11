@@ -283,7 +283,7 @@ export class GhlService {
 			tags: instanceId ? tags : undefined,
 		};
 
-		this.logger.info(`Upserting GHL contact for ${isGroup ? "group" : "phone"} ${formattedPhone} in Location ${ghlUserId} with payload:`, upsertPayload);
+		this.logger.log(`Upserting GHL contact for ${isGroup ? "group" : "phone"} ${formattedPhone} in Location ${ghlUserId} with payload:`, upsertPayload);
 
 		try {
 			const {data} = await httpClient.post("/contacts/upsert", upsertPayload);
@@ -354,7 +354,7 @@ export class GhlService {
 			conversationProviderId: this.configService.get<string>("GHL_CONVERSATION_PROVIDER_ID")!,
 		};
 
-		this.logger.info(`Posting outbound message to GHL for contact ${contactId}`, payload);
+		this.logger.log(`Posting outbound message to GHL for contact ${contactId}`, payload);
 
 		if (attachments && attachments.length > 0) {
 			payload.attachments = attachments;
@@ -362,14 +362,14 @@ export class GhlService {
 
 		try {
 			const {data: msgRes} = await httpClient.post("/conversations/messages", payload);
-			this.logger.info(`Successfully posted outbound message to GHL for contact ${contactId}`, msgRes);
+			this.logger.log(`Successfully posted outbound message to GHL for contact ${contactId}`, msgRes);
 
 			const messageId = msgRes.messageId;
 
 			setTimeout(async () => {
 				try {
 					await this.updateGhlMessageStatus(locationId, messageId, "delivered");
-					this.logger.info(`Updated GHL message status to delivered`, {messageId});
+					this.logger.log(`Updated GHL message status to delivered`, {messageId});
 				} catch (statusError) {
 					this.logger.warn(`Failed to update GHL message status, but message was posted successfully`, {
 						messageId,
@@ -679,7 +679,7 @@ export class GhlService {
 		data: WorkflowActionData,
 		actionType: "message" | "file" | "interactive-buttons" | "reply-buttons",
 	): Promise<WorkflowActionResult> {
-		this.logger.info(`Processing ${actionType} workflow action for location ${locationId}`, {
+		this.logger.log(`Processing ${actionType} workflow action for location ${locationId}`, {
 			actionType,
 			contactPhone,
 			data,
@@ -724,7 +724,7 @@ export class GhlService {
 					linkPreview: true,
 				});
 				ghlMessageContent = data.message;
-				this.logger.info(`Text message sent via Evolution API`, {
+				this.logger.log(`Text message sent via Evolution API`, {
 					instanceId: data.instanceId,
 					messageId: sendResponse.idMessage,
 				});
@@ -739,7 +739,7 @@ export class GhlService {
 				});
 				ghlMessageContent = data.caption ? data.caption : `[File: ${data.fileName}]`;
 				ghlAttachments = [data.url];
-				this.logger.info(`File sent via Evolution API`, {
+				this.logger.log(`File sent via Evolution API`, {
 					instanceId: data.instanceId,
 					messageId: sendResponse.idMessage,
 					fileName: data.fileName,
@@ -759,7 +759,7 @@ export class GhlService {
 					buttons,
 				});
 				ghlMessageContent = this.formatInteractiveButtonsForGhl(data, buttons);
-				this.logger.info(`Interactive buttons sent via Evolution API`, {
+				this.logger.log(`Interactive buttons sent via Evolution API`, {
 					instanceId: data.instanceId,
 					messageId: sendResponse.idMessage,
 					buttonCount: buttons.length,
@@ -779,7 +779,7 @@ export class GhlService {
 					buttons: replyButtons,
 				});
 				ghlMessageContent = this.formatReplyButtonsForGhl(data, replyButtons);
-				this.logger.info(`Reply buttons sent via Evolution API`, {
+				this.logger.log(`Reply buttons sent via Evolution API`, {
 					instanceId: data.instanceId,
 					messageId: sendResponse.idMessage,
 					buttonCount: replyButtons.length,
@@ -802,7 +802,7 @@ export class GhlService {
 
 		await this.postOutboundMessageToGhl(locationId, ghlContact.id, ghlMessageContent, ghlAttachments);
 
-		this.logger.info(`Outbound ${actionType} posted to GHL conversation`, {
+		this.logger.log(`Outbound ${actionType} posted to GHL conversation`, {
 			contactId: ghlContact.id,
 			locationId,
 			data,

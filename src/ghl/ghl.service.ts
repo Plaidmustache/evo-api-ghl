@@ -13,7 +13,7 @@ import {
 	GhlPlatformMessage,
 	MessageStatusPayload, WorkflowActionData, WorkflowActionResult,
 } from "../types";
-import { EvolutionApiClient } from "../evolution/evolution-api.client";
+import { EvolutionApiClient, EvolutionSendResponse } from "../evolution/evolution-api.client";
 import type { EvolutionWebhook, EvolutionWebhookEvent, EvolutionMessage } from "./types/evolution-webhook.types";
 import {
 	isMessagesUpsertData,
@@ -223,11 +223,9 @@ export class GhlService {
 			if (error instanceof HttpException) {
 				throw error;
 			}
-			throw new IntegrationError(
+			throw new HttpException(
 				`GHL API call to update message status failed for message ${ghlMessageId}`,
-				"GHL_API_ERROR",
-				error.response?.status || 500,
-				error.response?.data,
+				error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
 			);
 		}
 	}
@@ -353,8 +351,12 @@ export class GhlService {
 		this.logger.log(`Sending message to GHL for instance ${instance.idInstance} linked to User (Loc) ${instance.userId}`);
 		this.logger.debug(`GHL DTO: ${JSON.stringify(ghlMessageDto)}`);
 
-		if (!instance.userId) throw new IntegrationError("Instance not linked to User (GHL Location).", "CONFIGURATION_ERROR");
-		if (!ghlMessageDto.contactId) throw new IntegrationError("GHL Contact ID missing.", "DATA_ERROR");
+		if (!instance.userId) {
+			throw new HttpException("Instance not linked to User (GHL Location).", HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		if (!ghlMessageDto.contactId) {
+			throw new HttpException("GHL Contact ID missing.", HttpStatus.BAD_REQUEST);
+		}
 
 		ghlMessageDto.locationId = instance.userId;
 
@@ -375,24 +377,29 @@ export class GhlService {
 	public async handlePlatformWebhook(
 		ghlWebhook: GhlWebhookDto,
 		idInstance: number | bigint,
-	): Promise<SendResponse> {
+	): Promise<EvolutionSendResponse> {
 		const locationId = ghlWebhook.locationId;
 		const messageId = ghlWebhook.messageId;
 
-		let gaResponse: SendResponse;
-		this.logger.log(`Handling GHL webhook for Green API Instance ID: ${idInstance}`);
+		let sendResponse: EvolutionSendResponse;
+		this.logger.log(`Handling GHL webhook for Evolution API Instance ID: ${idInstance}`);
 		this.logger.debug(`GHL Webhook DTO: ${JSON.stringify(ghlWebhook)}`);
 
 		const instance = await this.prisma.getInstance(BigInt(idInstance));
-		if (!instance) throw new NotFoundError(`Instance ${idInstance} not found.`);
-		if (!instance.user) throw new IntegrationError("Instance not linked to User.", "DATA_ERROR");
-		if (instance.stateInstance !== "authorized") throw new IntegrationError("Instance is not authorized", "INSTANCE_NOT_AUTHORIZED");
+		if (!instance) {
+			throw new HttpException(`Instance ${idInstance} not found.`, HttpStatus.NOT_FOUND);
+		}
+		if (!instance.user) {
+			throw new HttpException("Instance not linked to User.", HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		if (instance.stateInstance !== "authorized") {
+			throw new HttpException("Instance is not authorized", HttpStatus.FORBIDDEN);
+		}
 
-		// TODO: Phase 4 (subtask-4-1) will implement Evolution API client for message sending
 		// Get Evolution API credentials from instance settings
 		const settings = instance.settings as { evolutionApiUrl?: string; evolutionApiKey?: string; instanceName?: string } | null;
 		if (!settings?.evolutionApiUrl || !settings?.evolutionApiKey || !settings?.instanceName) {
-			throw new IntegrationError("Instance missing Evolution API credentials", "CONFIGURATION_ERROR", 500);
+			throw new HttpException("Instance missing Evolution API credentials", HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
 		const evolutionClient = new EvolutionApiClient(settings.evolutionApiUrl, settings.evolutionApiKey);
@@ -403,10 +410,10 @@ export class GhlService {
 
 		switch (transformedMessage.type) {
 			case "text":
-				gaResponse = await evolutionClient.sendText(settings.instanceName, ghlWebhook.phone, transformedMessage.message);
+				sendResponse = await evolutionClient.sendText(settings.instanceName, ghlWebhook.phone, transformedMessage.message);
 				break;
 			case "url-file":
-				gaResponse = await evolutionClient.sendMedia(settings.instanceName, ghlWebhook.phone, {
+				sendResponse = await evolutionClient.sendMedia(settings.instanceName, ghlWebhook.phone, {
 					mediatype: "document",
 					media: transformedMessage.file.url,
 					fileName: transformedMessage.file.fileName,
@@ -415,10 +422,10 @@ export class GhlService {
 				break;
 			default:
 				this.logger.error(`Unsupported message type from GHL transform: ${transformedMessage.type}`);
-				throw new IntegrationError(`Invalid message type: ${transformedMessage.type}`, "INVALID_MESSAGE_TYPE", 500);
+				throw new HttpException(`Invalid message type: ${transformedMessage.type}`, HttpStatus.BAD_REQUEST);
 		}
 		await this.updateGhlMessageStatus(locationId, messageId, "delivered");
-		return gaResponse;
+		return sendResponse;
 	}
 
 	public async handleEvolutionWebhook(
@@ -742,8 +749,8 @@ export class GhlService {
 			throw new BadRequestException(`Instance ${data.instanceId} is not authorized (state: ${instance.stateInstance})`);
 		}
 
-		const chatId = formatPhoneNumber(contactPhone);
-		const cleanPhone = chatId.replace("@c.us", "");
+		// Clean phone number - remove any non-numeric characters and WhatsApp suffixes
+		const cleanPhone = contactPhone.replace(/[^0-9]/g, "");
 
 		// Get Evolution API credentials from instance settings
 		const settings = instance.settings as { evolutionApiUrl?: string; evolutionApiKey?: string; instanceName?: string } | null;
@@ -853,7 +860,14 @@ export class GhlService {
 		phoneNumber?: string;
 		url?: string;
 	}> {
-		const buttons: SendInteractiveButtons["buttons"] = [];
+		const buttons: Array<{
+			type: "copy" | "call" | "url";
+			buttonId: string;
+			buttonText: string;
+			copyCode?: string;
+			phoneNumber?: string;
+			url?: string;
+		}> = [];
 
 		if (data.button1Type && data.button1Text && data.button1Value) {
 			buttons.push({
@@ -895,7 +909,10 @@ export class GhlService {
 		buttonId: string;
 		buttonText: string;
 	}> {
-		const buttons: SendInteractiveButtonsReply["buttons"] = [];
+		const buttons: Array<{
+			buttonId: string;
+			buttonText: string;
+		}> = [];
 
 		if (data.button1Text) {
 			buttons.push({buttonId: "1", buttonText: data.button1Text});

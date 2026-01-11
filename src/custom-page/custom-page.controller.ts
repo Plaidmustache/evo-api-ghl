@@ -1,13 +1,12 @@
-import { Controller, Get, Post, Body, Res, HttpCode, HttpStatus } from "@nestjs/common";
+import { Controller, Get, Post, Body, Res, HttpCode, HttpStatus, Logger } from "@nestjs/common";
 import { Response } from "express";
 import { PrismaService } from "../prisma/prisma.service";
-import { GreenApiLogger } from "@green-api/greenapi-integration";
 import { ConfigService } from "@nestjs/config";
 import * as CryptoJS from "crypto-js";
 
 @Controller("app")
 export class CustomPageController {
-	private readonly logger = GreenApiLogger.getInstance(CustomPageController.name);
+	private readonly logger = new Logger(CustomPageController.name);
 
 	constructor(
 		private readonly prisma: PrismaService,
@@ -76,7 +75,7 @@ export class CustomPageController {
       <html lang="en">
       <head>
         <meta charset="UTF-8">
-        <title>WhatsApp Integration - GREEN-API</title>
+        <title>WhatsApp Integration - Evolution API</title>
         <style>
           * {
             margin: 0;
@@ -722,7 +721,7 @@ export class CustomPageController {
               </svg>
               <h1>WhatsApp Integration</h1>
             </div>
-            <p>Manage your GREEN-API instances with ease</p>
+            <p>Manage your Evolution API instances with ease</p>
           </div>
 
           <div class="content">
@@ -759,7 +758,7 @@ export class CustomPageController {
                   
                   <div class="form-group">
                     <label for="apiToken">API Token</label>
-                    <input type="text" id="apiToken" name="apiToken" placeholder="Your GREEN-API token" required>
+                    <input type="text" id="apiToken" name="apiToken" placeholder="Your Evolution API token" required>
                   </div>
                   
                   <div class="form-group">
@@ -916,11 +915,6 @@ export class CustomPageController {
               }, 10000);
             }
             
-            openGreenApiConsole(instanceId) {
-			  const consoleUrl = \`https://console.green-api.com/instanceList/\${instanceId}\`;
-			  window.open(consoleUrl, '_blank', 'noopener,noreferrer');
-			}
-
             handleMessage(event) {
               if (event.data && event.data.message === 'REQUEST_USER_DATA_RESPONSE') {
                 this.handleUserDataResponse(event.data.payload);
@@ -1056,9 +1050,6 @@ export class CustomPageController {
                     <strong>Created:</strong> \${new Date(instance.createdAt).toLocaleDateString()}
                   </div>
                   <div class="instance-actions">
-                  	<button onclick="window.instanceHandler.openGreenApiConsole('\${instance.id}')" class="btn" title="Open GREEN-API Console">
-					  Open Console
-					</button>
                     <button onclick="window.instanceHandler.toggleEditMode('\${instance.id}')" class="btn secondary">Edit Name</button>
                     <button class="btn danger" onclick="window.instanceHandler.deleteInstance('\${instance.id}')">Delete</button>
                   </div>

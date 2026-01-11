@@ -99,9 +99,9 @@ export class PrismaService
 		});
 	}
 
-	async getInstance(idInstance: number | bigint): Promise<(Instance & { user: User }) | null> {
+	async getInstance(instanceName: string): Promise<(Instance & { user: User }) | null> {
 		return this.instance.findUnique({
-			where: {idInstance: BigInt(idInstance)},
+			where: {instanceName},
 			include: {user: true},
 		});
 	}

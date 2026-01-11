@@ -64,8 +64,9 @@
             "command": "cd /Users/malone/evo-api-ghl && npx tsc --noEmit src/prisma/prisma.service.ts",
             "expected": "No compilation errors"
           },
-          "status": "pending",
-          "notes": "Add method: async getInstanceByName(name: string): Promise<(Instance & { user: User }) | null>"
+          "status": "completed",
+          "notes": "Added getInstanceByName method to PrismaService. Method uses findFirst to look up instances by name field and includes user relation. Follows existing getInstance pattern.",
+          "updated_at": "2026-01-11T15:33:48.966047+00:00"
         },
         {
           "id": "subtask-2-2",
@@ -84,8 +85,9 @@
             "command": "cd /Users/malone/evo-api-ghl && npx tsc --noEmit src/webhooks/guards/evolution-webhook.guard.ts",
             "expected": "No compilation errors"
           },
-          "status": "pending",
-          "notes": "Guard must: 1) Validate payload has 'event' and 'instance' fields, 2) Look up instance by 'name' field in database using getInstanceByName, 3) Return false if instance not found, 4) Attach instance to request for controller use"
+          "status": "completed",
+          "notes": "Created evolution-webhook.guard.ts with EvolutionWebhookGuard class. Guard validates: 1) payload has 'event' and 'instance' fields, 2) looks up instance by name using getInstanceByName, 3) throws UnauthorizedException if instance not found, 4) attaches instance to request object for controller use. Includes Logger for debugging failed validations.",
+          "updated_at": "2026-01-11T15:34:55.804686+00:00"
         }
       ]
     },
@@ -116,8 +118,9 @@
             "command": "cd /Users/malone/evo-api-ghl && npx tsc --noEmit src/webhooks/webhooks.controller.ts",
             "expected": "No compilation errors"
           },
-          "status": "pending",
-          "notes": "Must: 1) Send 200 OK immediately, 2) Skip fromMe:true messages, 3) Extract phone from remoteJid (handle @s.whatsapp.net, @c.us, @g.us), 4) Route to GHL via GhlService.sendToPlatform()"
+          "status": "completed",
+          "notes": "Added @Post('evolution') endpoint with EvolutionWebhookGuard. Implemented: 1) handleEvolutionWebhook endpoint that sends 200 OK immediately then processes async, 2) handleEvolutionMessagesUpsert handler that routes messages to GHL via ghlService.sendToPlatform(), 3) extractPhoneFromRemoteJid helper to strip WhatsApp JID suffixes (@s.whatsapp.net, @c.us, @g.us), 4) extractMessageContent helper to extract text from various Evolution API message types. Handles edge cases: skips fromMe messages, handles empty/unsupported content, handles both individual and group messages.",
+          "updated_at": "2026-01-11T15:36:57.493448+00:00"
         },
         {
           "id": "subtask-3-2",
@@ -299,5 +302,5 @@
     }
   },
   "qa_signoff": null,
-  "last_updated": "2026-01-11T15:32:14.547140+00:00"
+  "last_updated": "2026-01-11T15:36:57.493459+00:00"
 }

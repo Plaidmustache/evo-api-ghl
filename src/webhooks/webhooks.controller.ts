@@ -21,8 +21,11 @@ import { WorkflowTokenGuard } from "./guards/workflow-token.guard";
 import {
 	EvolutionWebhookDto,
 	EvolutionMessagesUpsertWebhookDto,
+	EvolutionConnectionUpdateWebhookDto,
 	EvolutionMessageContent,
+	EvolutionConnectionState,
 } from "./dto/evolution-webhook.dto";
+import { InstanceState } from "@prisma/client";
 import type { Instance, User } from "@prisma/client";
 
 @Controller("webhooks")
@@ -64,6 +67,8 @@ export class WebhooksController {
 
 			if (webhook.event === "messages.upsert") {
 				await this.handleEvolutionMessagesUpsert(webhook as EvolutionMessagesUpsertWebhookDto, instance);
+			} else if (webhook.event === "connection.update") {
+				await this.handleEvolutionConnectionUpdate(webhook as EvolutionConnectionUpdateWebhookDto, instance);
 			} else {
 				this.logger.warn(`Unhandled Evolution API event type: ${webhook.event}`);
 			}
@@ -129,6 +134,55 @@ export class WebhooksController {
 		// Send to GHL platform
 		await this.ghlService.sendToPlatform(ghlMessage, instance);
 		this.logger.log(`Evolution message ${data.key.id} routed to GHL for contact ${ghlContact.id}`);
+	}
+
+	/**
+	 * Handles connection.update events from Evolution API
+	 * Updates the instance state in the database based on the connection state
+	 */
+	private async handleEvolutionConnectionUpdate(
+		webhook: EvolutionConnectionUpdateWebhookDto,
+		instance: Instance & { user: User },
+	): Promise<void> {
+		const { data } = webhook;
+		const evolutionState = data.state;
+		const instanceState = this.mapEvolutionStateToInstanceState(evolutionState);
+
+		this.logger.log(
+			`Processing Evolution connection.update for instance ${webhook.instance}: ${evolutionState} -> ${instanceState}`,
+		);
+
+		try {
+			await this.prisma.updateInstanceState(instance.idInstance, instanceState);
+			this.logger.log(
+				`Updated instance ${instance.idInstance} state to ${instanceState} (Evolution state: ${evolutionState})`,
+			);
+		} catch (error) {
+			this.logger.error(
+				`Failed to update instance ${instance.idInstance} state to ${instanceState}`,
+				error,
+			);
+			throw error;
+		}
+	}
+
+	/**
+	 * Maps Evolution API connection states to database InstanceState enum
+	 * @param evolutionState - The state from Evolution API (open, close, connecting)
+	 * @returns The corresponding InstanceState enum value
+	 */
+	private mapEvolutionStateToInstanceState(evolutionState: EvolutionConnectionState): InstanceState {
+		switch (evolutionState) {
+			case "open":
+				return InstanceState.authorized;
+			case "close":
+				return InstanceState.notAuthorized;
+			case "connecting":
+				return InstanceState.starting;
+			default:
+				this.logger.warn(`Unknown Evolution connection state: ${evolutionState}, defaulting to notAuthorized`);
+				return InstanceState.notAuthorized;
+		}
 	}
 
 	/**

@@ -3,13 +3,13 @@
   "spec": "003-create-evolution-webhook-handler",
   "state": "building",
   "subtasks": {
-    "completed": 1,
+    "completed": 4,
     "total": 8,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Create Evolution Webhook Guard",
+    "current": "Update Webhooks Controller",
     "id": null,
     "total": 2
   },
@@ -18,8 +18,8 @@
     "max": 1
   },
   "session": {
-    "number": 2,
+    "number": 5,
     "started_at": "2026-01-11T16:30:26.428065"
   },
-  "last_update": "2026-01-11T16:32:47.420890"
+  "last_update": "2026-01-11T16:37:18.243858"
 }

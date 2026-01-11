@@ -111,6 +111,13 @@ export class PrismaService
 		});
 	}
 
+	async getInstanceByName(name: string): Promise<(Instance & { user: User }) | null> {
+		return this.instance.findFirst({
+			where: {name},
+			include: {user: true},
+		});
+	}
+
 	async getInstancesByUserId(userId: string): Promise<Instance[]> {
 		return this.instance.findMany({
 			where: {userId},

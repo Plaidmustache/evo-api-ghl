@@ -1,0 +1,76 @@
+{
+  "complexity": "standard",
+  "workflow_type": "refactor",
+  "confidence": 0.90,
+  "reasoning": "This is a webhook migration from GreenAPI to Evolution API format. The scope is well-defined (3-4 files in a single module), no external research needed since payload format is fully specified, and existing guard/controller patterns provide a clear template. The main work is rewriting validation logic and parsing new payload structure.",
+
+  "analysis": {
+    "scope": {
+      "estimated_files": 4,
+      "estimated_services": 1,
+      "is_cross_cutting": false,
+      "notes": "Changes isolated to webhooks module: guard file (rename+rewrite), controller (endpoint+handler), module (imports), potentially new DTO for Evolution payload"
+    },
+    "integrations": {
+      "external_services": [],
+      "new_dependencies": [],
+      "research_needed": false,
+      "notes": "Evolution API webhooks are incoming - we receive them, not call external APIs. Payload format is fully documented in requirements."
+    },
+    "infrastructure": {
+      "docker_changes": false,
+      "database_changes": false,
+      "config_changes": false,
+      "notes": "No infrastructure changes. Uses existing Instance table for validation. No new environment variables."
+    },
+    "knowledge": {
+      "patterns_exist": true,
+      "research_required": false,
+      "unfamiliar_tech": [],
+      "notes": "Existing GreenAPI webhook guard provides template. NestJS guards and controllers are standard patterns. Evolution API payload format is fully specified in requirements."
+    },
+    "risk": {
+      "level": "medium",
+      "concerns": [
+        "Endpoint URL change requires updating Evolution API webhook configuration",
+        "Guard must correctly validate instance exists in database",
+        "Phone number extraction from remoteJid must handle both @s.whatsapp.net and @g.us suffixes"
+      ],
+      "notes": "Risk is manageable - localized changes with clear validation requirements. No authentication or security-sensitive changes."
+    }
+  },
+
+  "recommended_phases": [
+    "discovery",
+    "requirements",
+    "context",
+    "spec_writing",
+    "planning",
+    "validation"
+  ],
+
+  "flags": {
+    "needs_research": false,
+    "needs_self_critique": false,
+    "needs_infrastructure_setup": false
+  },
+
+  "validation_recommendations": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "minimal_mode": false,
+    "test_types_required": ["unit", "integration"],
+    "security_scan_required": false,
+    "staging_deployment_required": false,
+    "reasoning": "Webhook handler changes require unit tests for guard validation logic and phone extraction, plus integration tests for HTTP endpoint and payload parsing. No auth/security changes involved."
+  },
+
+  "key_implementation_notes": {
+    "guard_rewrite": "Current guard extends BaseGreenApiAuthGuard from @green-api/greenapi-integration SDK - must be completely rewritten to validate Evolution API format and check instance exists by instanceName field",
+    "event_routing": "Two event types to handle: messages.upsert (route to GHL) and connection.update (update DB state)",
+    "phone_extraction": "Must strip @s.whatsapp.net or @g.us suffix from remoteJid field",
+    "dto_consideration": "May need new DTO for Evolution API webhook payload structure"
+  },
+
+  "created_at": "2025-01-11T12:00:00.000Z"
+}

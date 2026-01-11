@@ -1,0 +1,303 @@
+{
+  "feature": "Evolution API Webhook Handler",
+  "workflow_type": "feature",
+  "workflow_rationale": "This task adds new webhook handling capability for Evolution API. It involves creating a new guard, updating controller endpoints, implementing new event parsing logic, and adding helper methods for phone number extraction - all characteristic of a feature implementation with clear service dependencies.",
+  "created_at": "2026-01-11T14:24:45.586Z",
+  "updated_at": "2026-01-11T15:29:58.646Z",
+  "status": "in_progress",
+  "planStatus": "in_progress",
+  "phases": [
+    {
+      "id": "phase-1-dto",
+      "name": "Create Evolution Webhook DTOs",
+      "type": "implementation",
+      "description": "Create TypeScript interfaces for Evolution API webhook payloads to ensure type safety",
+      "depends_on": [],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-1-1",
+          "description": "Create Evolution API webhook DTO interfaces for messages.upsert and connection.update events",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/webhooks/dto/evolution-webhook.dto.ts"
+          ],
+          "patterns_from": [
+            "src/ghl/dto/ghl-webhook.dto.ts",
+            ".worktrees/002-create-evolution-api-http-client/src/evolution/evolution-api.types.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "cd /Users/malone/evo-api-ghl && npx tsc --noEmit src/webhooks/dto/evolution-webhook.dto.ts",
+            "expected": "No compilation errors"
+          },
+          "status": "completed",
+          "notes": "Created evolution-webhook.dto.ts with EvolutionMessagesUpsertWebhookDto, EvolutionConnectionUpdateWebhookDto, and supporting types. Uses class-validator decorators following GHL webhook DTO pattern.",
+          "updated_at": "2026-01-11T15:32:14.547098+00:00"
+        }
+      ]
+    },
+    {
+      "id": "phase-2-guard",
+      "name": "Create Evolution Webhook Guard",
+      "type": "implementation",
+      "description": "Create the EvolutionWebhookGuard to validate incoming webhook requests and verify instance exists in database",
+      "depends_on": [
+        "phase-1-dto"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-2-1",
+          "description": "Add getInstanceByName method to PrismaService for looking up instances by name field",
+          "service": "main",
+          "files_to_modify": [
+            "src/prisma/prisma.service.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/prisma/prisma.service.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "cd /Users/malone/evo-api-ghl && npx tsc --noEmit src/prisma/prisma.service.ts",
+            "expected": "No compilation errors"
+          },
+          "status": "pending",
+          "notes": "Add method: async getInstanceByName(name: string): Promise<(Instance & { user: User }) | null>"
+        },
+        {
+          "id": "subtask-2-2",
+          "description": "Create evolution-webhook.guard.ts with EvolutionWebhookGuard class that validates Evolution API webhook format and checks instance exists in database",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/webhooks/guards/evolution-webhook.guard.ts"
+          ],
+          "patterns_from": [
+            "src/webhooks/guards/greenapi-webhook.guard.ts",
+            "src/ghl/guards/ghl-context.guard.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "cd /Users/malone/evo-api-ghl && npx tsc --noEmit src/webhooks/guards/evolution-webhook.guard.ts",
+            "expected": "No compilation errors"
+          },
+          "status": "pending",
+          "notes": "Guard must: 1) Validate payload has 'event' and 'instance' fields, 2) Look up instance by 'name' field in database using getInstanceByName, 3) Return false if instance not found, 4) Attach instance to request for controller use"
+        }
+      ]
+    },
+    {
+      "id": "phase-3-controller",
+      "name": "Update Webhooks Controller",
+      "type": "implementation",
+      "description": "Add Evolution API webhook endpoint and implement event handling for messages.upsert and connection.update",
+      "depends_on": [
+        "phase-2-guard"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-3-1",
+          "description": "Add @Post('evolution') endpoint with EvolutionWebhookGuard, add helper function for phone extraction, implement messages.upsert handler to route messages to GHL",
+          "service": "main",
+          "files_to_modify": [
+            "src/webhooks/webhooks.controller.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/webhooks/webhooks.controller.ts",
+            "src/ghl/ghl.service.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "cd /Users/malone/evo-api-ghl && npx tsc --noEmit src/webhooks/webhooks.controller.ts",
+            "expected": "No compilation errors"
+          },
+          "status": "pending",
+          "notes": "Must: 1) Send 200 OK immediately, 2) Skip fromMe:true messages, 3) Extract phone from remoteJid (handle @s.whatsapp.net, @c.us, @g.us), 4) Route to GHL via GhlService.sendToPlatform()"
+        },
+        {
+          "id": "subtask-3-2",
+          "description": "Implement connection.update event handler to update instance state in database with state mapping",
+          "service": "main",
+          "files_to_modify": [
+            "src/webhooks/webhooks.controller.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/ghl/ghl.service.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "cd /Users/malone/evo-api-ghl && npx tsc --noEmit src/webhooks/webhooks.controller.ts",
+            "expected": "No compilation errors"
+          },
+          "status": "pending",
+          "notes": "Map Evolution states: open->authorized, close->notAuthorized, connecting->starting. Use PrismaService.updateInstanceState()"
+        }
+      ]
+    },
+    {
+      "id": "phase-4-module",
+      "name": "Update Webhooks Module",
+      "type": "implementation",
+      "description": "Update webhooks module to register the new EvolutionWebhookGuard",
+      "depends_on": [
+        "phase-3-controller"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-4-1",
+          "description": "Update webhooks.module.ts to import and register EvolutionWebhookGuard as a provider",
+          "service": "main",
+          "files_to_modify": [
+            "src/webhooks/webhooks.module.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/webhooks/webhooks.module.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "cd /Users/malone/evo-api-ghl && npx tsc --noEmit src/webhooks/webhooks.module.ts",
+            "expected": "No compilation errors"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-5-integration",
+      "name": "Build Verification",
+      "type": "integration",
+      "description": "Verify the complete application builds and all changes work together",
+      "depends_on": [
+        "phase-4-module"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-5-1",
+          "description": "Run full TypeScript compilation to verify all changes compile correctly",
+          "all_services": true,
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "cd /Users/malone/evo-api-ghl && npm run build",
+            "expected": "Build completes successfully with no errors"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-5-2",
+          "description": "Verify application starts correctly with the new webhook endpoint",
+          "all_services": true,
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "manual",
+            "instructions": "Run 'npm run start' and verify no startup errors. Check that /webhooks/evolution endpoint is registered in the logs."
+          },
+          "status": "pending"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_phases": 5,
+    "total_subtasks": 7,
+    "services_involved": [
+      "main"
+    ],
+    "parallelism": {
+      "max_parallel_phases": 1,
+      "parallel_groups": [],
+      "recommended_workers": 1,
+      "speedup_estimate": "Sequential execution - single service, dependent phases"
+    },
+    "startup_command": "source auto-claude/.venv/bin/activate && python auto-claude/run.py --spec 003 --parallel 1"
+  },
+  "verification_strategy": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "test_creation_phase": "post_implementation",
+    "test_types_required": [
+      "unit",
+      "integration"
+    ],
+    "security_scanning_required": false,
+    "staging_deployment_required": false,
+    "acceptance_criteria": [
+      "All TypeScript compilation passes without errors",
+      "Application builds successfully",
+      "Application starts without errors",
+      "POST /webhooks/evolution endpoint is registered",
+      "Guard correctly validates Evolution API webhook format",
+      "Guard correctly looks up instance by name field",
+      "messages.upsert events route to GHL",
+      "connection.update events update instance state in DB",
+      "Phone numbers correctly extracted from remoteJid format"
+    ],
+    "verification_steps": [
+      {
+        "name": "TypeScript Compilation",
+        "command": "cd /Users/malone/evo-api-ghl && npx tsc --noEmit",
+        "expected_outcome": "No compilation errors",
+        "type": "build",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Full Build",
+        "command": "cd /Users/malone/evo-api-ghl && npm run build",
+        "expected_outcome": "Build completes successfully",
+        "type": "build",
+        "required": true,
+        "blocking": true
+      }
+    ],
+    "reasoning": "Medium risk change requires unit and integration tests for guard validation logic and phone extraction. Build verification confirms no runtime issues."
+  },
+  "qa_acceptance": {
+    "unit_tests": {
+      "required": true,
+      "commands": [
+        "npm test -- --testPathPattern=evolution-webhook"
+      ],
+      "minimum_coverage": null
+    },
+    "integration_tests": {
+      "required": true,
+      "commands": [
+        "npm run test:e2e -- --testPathPattern=webhooks"
+      ],
+      "services_to_test": [
+        "main"
+      ]
+    },
+    "e2e_tests": {
+      "required": false,
+      "commands": [],
+      "flows": []
+    },
+    "browser_verification": {
+      "required": false,
+      "pages": []
+    },
+    "database_verification": {
+      "required": true,
+      "checks": [
+        "Instance state updates correctly on connection.update webhook"
+      ]
+    }
+  },
+  "qa_signoff": null,
+  "last_updated": "2026-01-11T15:32:14.547140+00:00"
+}

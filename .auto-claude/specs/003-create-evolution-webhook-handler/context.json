@@ -1,0 +1,81 @@
+{
+  "task_description": "Migrate webhook handling from GreenAPI to Evolution API format. Create new guard, update controller endpoints, implement event parsing for messages.upsert and connection.update events.",
+  "scoped_services": ["main"],
+  "files_to_modify": {
+    "main": [
+      "src/prisma/prisma.service.ts",
+      "src/webhooks/webhooks.controller.ts",
+      "src/webhooks/webhooks.module.ts"
+    ]
+  },
+  "files_to_create": {
+    "main": [
+      "src/webhooks/dto/evolution-webhook.dto.ts",
+      "src/webhooks/guards/evolution-webhook.guard.ts"
+    ]
+  },
+  "files_to_reference": [
+    "src/webhooks/guards/greenapi-webhook.guard.ts",
+    "src/webhooks/webhooks.controller.ts",
+    "src/ghl/ghl.service.ts",
+    "src/ghl/dto/ghl-webhook.dto.ts",
+    "src/prisma/prisma.service.ts",
+    ".worktrees/002-create-evolution-api-http-client/src/evolution/evolution-api.types.ts"
+  ],
+  "patterns": {
+    "guard_pattern": "Guards implement CanActivate interface, inject PrismaService, return boolean from canActivate(). Current GreenAPI guard extends BaseGreenApiAuthGuard - new guard should NOT extend this.",
+    "webhook_handler_pattern": "Send HTTP 200 immediately via res.status(HttpStatus.OK).send() before async processing. Use try/catch but don't throw after response sent.",
+    "phone_extraction_pattern": "Use regex .replace(/@[scg]\\.(whatsapp\\.net|us)$/, '') to strip WhatsApp JID suffixes",
+    "dto_pattern": "DTOs use class-validator decorators (@IsString, @IsNotEmpty, etc.) for validation. Located in dto/ subdirectories."
+  },
+  "existing_implementations": {
+    "description": "Spec 002 created Evolution API client with types for webhook events. Instance model has 'name' field for lookup.",
+    "relevant_files": [
+      ".worktrees/002-create-evolution-api-http-client/src/evolution/evolution-api.types.ts",
+      "prisma/schema.prisma"
+    ]
+  },
+  "database_details": {
+    "instance_lookup": "Instance model has 'name' field (optional string) that should be used for Evolution API instance lookup",
+    "state_enum": "InstanceState enum has values: notAuthorized, authorized, yellowCard, blocked, starting",
+    "existing_methods": [
+      "getInstance(idInstance: bigint)",
+      "updateInstanceState(idInstance: bigint, state: InstanceState)",
+      "getInstancesByUserId(userId: string)"
+    ],
+    "needed_method": "getInstanceByName(name: string) - must be added to PrismaService"
+  },
+  "evolution_api_webhook_format": {
+    "messages_upsert": {
+      "event": "messages.upsert",
+      "instance": "string (instance name)",
+      "data": {
+        "key": {
+          "remoteJid": "phone@s.whatsapp.net or group@g.us",
+          "fromMe": "boolean",
+          "id": "message ID"
+        },
+        "pushName": "sender display name",
+        "message": {
+          "conversation": "text content (for text messages)"
+        },
+        "messageType": "conversation, imageMessage, etc.",
+        "messageTimestamp": "unix timestamp"
+      }
+    },
+    "connection_update": {
+      "event": "connection.update",
+      "instance": "string (instance name)",
+      "data": {
+        "state": "open | close | connecting"
+      }
+    }
+  },
+  "state_mapping": {
+    "open": "authorized",
+    "close": "notAuthorized",
+    "connecting": "starting"
+  },
+  "created_at": "2026-01-11T16:23:48.843293",
+  "updated_at": "2026-01-11T16:35:00.000000"
+}

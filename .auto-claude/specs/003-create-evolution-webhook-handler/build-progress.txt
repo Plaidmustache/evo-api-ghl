@@ -1,0 +1,72 @@
+=== AUTO-BUILD PROGRESS ===
+
+Project: Evolution API Webhook Handler
+Workspace: /Users/malone/evo-api-ghl
+Spec Directory: .auto-claude/specs/003-create-evolution-webhook-handler
+Started: 2026-01-11T16:30:00.000Z
+
+Workflow Type: feature
+Rationale: This task adds new webhook handling capability for Evolution API. It involves creating a new guard, updating controller endpoints, implementing new event parsing logic, and adding helper methods for phone number extraction.
+
+Session 1 (Planner):
+- Created implementation_plan.json
+- Phases: 5
+- Total subtasks: 7
+- Created init.sh
+
+Phase Summary:
+- Phase 1: Create Evolution Webhook DTOs (1 subtask) - depends on: none
+- Phase 2: Create Evolution Webhook Guard (2 subtasks) - depends on: phase-1-dto
+- Phase 3: Update Webhooks Controller (2 subtasks) - depends on: phase-2-guard
+- Phase 4: Update Webhooks Module (1 subtask) - depends on: phase-3-controller
+- Phase 5: Build Verification (2 subtasks) - depends on: phase-4-module
+
+Services Involved:
+- main: NestJS backend handling webhook reception, validation, and message routing to GHL
+
+Files to Create:
+- src/webhooks/dto/evolution-webhook.dto.ts (TypeScript interfaces for Evolution API webhook payloads)
+- src/webhooks/guards/evolution-webhook.guard.ts (Guard for validating Evolution API webhooks)
+
+Files to Modify:
+- src/prisma/prisma.service.ts (Add getInstanceByName method)
+- src/webhooks/webhooks.controller.ts (Add /evolution endpoint and handlers)
+- src/webhooks/webhooks.module.ts (Register new guard)
+
+Key Implementation Details:
+- Guard validates 'event' and 'instance' fields in webhook payload
+- Guard looks up instance by 'name' field in database
+- Two event types: messages.upsert (route to GHL) and connection.update (update DB state)
+- Phone extraction handles @s.whatsapp.net, @c.us, and @g.us suffixes
+- State mapping: open->authorized, close->notAuthorized, connecting->starting
+- Skip messages where fromMe:true to prevent echo loops
+
+Parallelism Analysis:
+- Max parallel phases: 1
+- Recommended workers: 1
+- Parallel groups: None (sequential dependency chain)
+
+=== STARTUP COMMAND ===
+
+To continue building this spec, run:
+
+  source auto-claude/.venv/bin/activate && python auto-claude/run.py --spec 003 --parallel 1
+
+Alternative (if venv not available):
+  cd /Users/malone/evo-api-ghl && npm run start:dev
+
+=== VERIFICATION CHECKLIST ===
+
+Before proceeding to implementation:
+[ ] Confirm spec.md has all required details
+[ ] Confirm implementation_plan.json is complete
+[ ] Confirm init.sh can start the development environment
+[ ] Confirm all pattern files exist in codebase
+
+=== END SESSION 1 (Planner) ===
+
+Next Steps:
+1. Coder agent will read implementation_plan.json
+2. Start with phase-1-dto (Create Evolution Webhook DTOs)
+3. Implement each subtask sequentially
+4. Verify each subtask before proceeding to the next

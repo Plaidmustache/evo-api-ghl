@@ -1,7 +1,7 @@
 {
-  "name": "greenapi-integration-gohighlevel",
+  "name": "evolution-api-gohighlevel",
   "version": "1.2.3",
-  "description": "GREEN-API Integration with GoHighLevel",
+  "description": "Evolution API Integration with GoHighLevel",
   "author": "GREEN-API",
   "private": false,
   "license": "MIT",
@@ -13,7 +13,6 @@
     "start:prod": "node dist/main"
   },
   "dependencies": {
-    "@green-api/greenapi-integration": "^0.8.1",
     "@nestjs/axios": "^4.0.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",

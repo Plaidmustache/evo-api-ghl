@@ -198,7 +198,9 @@
             "command": "grep -i 'green' src/ghl/ghl.controller.ts | wc -l",
             "expected": "0 (no GREEN-API references)"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Updated src/ghl/ghl.controller.ts: replaced GreenApiLogger with NestJS Logger, renamed createGreenApiInstanceForUser to createEvolutionInstanceForUser, updated error message from 'Invalid GREEN-API credentials' to 'Invalid Evolution API credentials'. Verification passed (0 green references).",
+          "updated_at": "2026-01-11T21:11:06.999754+00:00"
         },
         {
           "id": "subtask-3-6",
@@ -216,7 +218,9 @@
             "command": "grep -i 'green' src/ghl/ghl.service.ts | wc -l",
             "expected": "0 (no GREEN-API references)"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Updated src/ghl/ghl.service.ts: removed @green-api/greenapi-integration imports, removed BaseAdapter inheritance, replaced GreenApiLogger with NestJS Logger, renamed handleGreenApiWebhook to handleEvolutionWebhook, renamed createGreenApiInstanceForUser to createEvolutionInstanceForUser, renamed toGreenApiMessage to toEvolutionMessage, replaced IntegrationError/NotFoundError with HttpException/NotFoundException, updated all string references from GREEN-API to Evolution API, added local type definitions and createEvolutionClient method. Also updated webhooks.controller.ts to call the renamed method. Verification passed: grep -i 'green' src/ghl/ghl.service.ts | wc -l returned 0. Commit: d8d451a.",
+          "updated_at": "2026-01-11T21:17:22.453971+00:00"
         },
         {
           "id": "subtask-3-7",
@@ -234,7 +238,9 @@
             "command": "grep -i 'green' src/ghl/ghl.transformer.ts | wc -l",
             "expected": "0 (no GREEN-API references)"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Updated src/ghl/ghl.transformer.ts: removed GREEN-API imports (GreenApiWebhook, GreenApiLogger, Message), added local type definitions for EvolutionMessage, MessageTransformer, and EvolutionWebhook interfaces, added local helper functions formatPhoneNumber and extractPhoneNumberFromVCard, renamed method toGreenApiMessage to toEvolutionMessage, updated all comments and log messages from \"Green API\" to \"Evolution API\", replaced GreenApiLogger with NestJS Logger. Verification passed: 0 GREEN-API references found.",
+          "updated_at": "2026-01-11T21:20:23.456511+00:00"
         },
         {
           "id": "subtask-3-8",
@@ -250,7 +256,9 @@
             "command": "grep -i 'green' src/oauth/oauth.controller.ts | wc -l",
             "expected": "0 (no GREEN-API references)"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Replaced GreenApiLogger with NestJS Logger, updated all GREEN-API references to Evolution API in HTML strings. Verification passed with 0 GREEN-API references.",
+          "updated_at": "2026-01-11T21:21:19.794505+00:00"
         },
         {
           "id": "subtask-3-9",
@@ -268,7 +276,9 @@
             "command": "grep -i 'green' src/custom-page/custom-page.controller.ts | wc -l",
             "expected": "0 (no GREEN-API references)"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Replaced GreenApiLogger with NestJS Logger, updated UI strings from GREEN-API to Evolution API, removed openGreenApiConsole function. Verification passed: 0 GREEN-API references remaining.",
+          "updated_at": "2026-01-11T21:22:35.188011+00:00"
         }
       ]
     },
@@ -296,7 +306,9 @@
             "command": "grep -i 'green-api' README.md | wc -l",
             "expected": "0 (no GREEN-API references)"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Successfully rebranded README.md: replaced all GREEN-API references with Evolution API, updated title, added Self-Hosting Requirement section, updated repository URL to EvolutionAPI/evo-api-ghl, updated console references to Evolution API dashboard, added link to doc.evolution-api.com. Verification passed with 0 GREEN-API references remaining.",
+          "updated_at": "2026-01-11T21:24:18.666775+00:00"
         },
         {
           "id": "subtask-4-2",
@@ -314,7 +326,9 @@
             "command": "grep -i 'green-api' README.ru.md | wc -l",
             "expected": "0 (no GREEN-API references)"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Successfully rebranded README.ru.md to Evolution API: replaced all GREEN-API references (verified 0 remaining), added self-hosting requirement section in Russian, updated repository URL to EvolutionAPI/evo-api-ghl, updated dashboard references, maintained structure consistent with English README.md.",
+          "updated_at": "2026-01-11T21:26:09.441249+00:00"
         },
         {
           "id": "subtask-4-3",
@@ -330,7 +344,9 @@
             "command": "grep -c 'GREEN-API (old)' CLAUDE.md",
             "expected": "Context table should remain for reference but no active GREEN-API code references"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "CLAUDE.md file does not exist in this project. The file was listed in the spec for potential updates but was never part of the original codebase. No action required - subtask is N/A. Verification confirmed: 'grep -c GREEN-API (old) CLAUDE.md' returns 'No such file or directory'.",
+          "updated_at": "2026-01-11T21:27:04.561615+00:00"
         },
         {
           "id": "subtask-4-4",
@@ -536,7 +552,7 @@
   },
   "qa_signoff": null,
   "dependencies_note": "IMPORTANT: This task assumes that previous worktree changes (tasks 001-007) have been merged, providing Evolution API client, webhook guard, and type definitions. If those changes are not present, Phase 2 and 3 will need to create the Evolution API implementations rather than just cleaning up GREEN-API references.",
-  "last_updated": "2026-01-11T21:10:16.620827+00:00",
+  "last_updated": "2026-01-11T21:27:04.561625+00:00",
   "status": "in_progress",
   "planStatus": "in_progress",
   "updated_at": "2026-01-11T21:00:05.138Z"

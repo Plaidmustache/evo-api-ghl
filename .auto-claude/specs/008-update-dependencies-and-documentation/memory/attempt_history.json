@@ -11,11 +11,71 @@
         }
       ],
       "status": "completed"
+    },
+    "subtask-2-1": {
+      "attempts": [
+        {
+          "session": 2,
+          "timestamp": "2026-01-11T22:02:16.531044",
+          "approach": "Implemented: Delete src/webhooks/guards/greenapi-webhook.guard.ts using git rm to preserve history, as it is repl",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
+    },
+    "subtask-2-2": {
+      "attempts": [
+        {
+          "session": 3,
+          "timestamp": "2026-01-11T22:04:07.464729",
+          "approach": "Implemented: Update src/webhooks/webhooks.module.ts to import EvolutionWebhookGuard instead of GreenApiWebhookGua",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
+    },
+    "subtask-3-1": {
+      "attempts": [
+        {
+          "session": 4,
+          "timestamp": "2026-01-11T22:06:41.296099",
+          "approach": "Implemented: Update src/webhooks/webhooks.controller.ts: remove GREEN-API imports/references, update route from /",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
+    },
+    "subtask-3-2": {
+      "attempts": [
+        {
+          "session": 5,
+          "timestamp": "2026-01-11T22:07:55.617972",
+          "approach": "Implemented: Update src/main.ts: remove GREEN-API Settings import, use NestJS Logger instead of GreenApiLogger",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
+    },
+    "subtask-3-3": {
+      "attempts": [
+        {
+          "session": 6,
+          "timestamp": "2026-01-11T22:09:27.950936",
+          "approach": "Implemented: Update src/prisma/prisma.service.ts: remove GREEN-API imports, use standard NestJS Logger",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
     }
   },
   "stuck_subtasks": [],
   "metadata": {
     "created_at": "2026-01-11T22:00:06.321174",
-    "last_updated": "2026-01-11T22:01:39.955266"
+    "last_updated": "2026-01-11T22:09:27.950956"
   }
 }

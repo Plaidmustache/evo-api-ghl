@@ -28,6 +28,18 @@ export class GhlTransformer
 		return jid.replace(/@s\.whatsapp\.net$/, "").replace(/@g\.us$/, "");
 	}
 
+	/**
+	 * Checks if a message is from a group chat
+	 * @param jid - WhatsApp JID (e.g., "5511999999999@s.whatsapp.net" or "120363123456789012@g.us")
+	 * @returns true if the JID indicates a group chat, false otherwise
+	 */
+	private isGroupMessage(jid: string): boolean {
+		if (!jid) {
+			return false;
+		}
+		return jid.endsWith("@g.us");
+	}
+
 	toPlatformMessage(webhook: GreenApiWebhook): GhlPlatformMessage {
 		this.logger.debug(`Transforming Green API webhook to GHL Platform Message: ${JSON.stringify(webhook)}`);
 		let messageText = "";

@@ -57,8 +57,9 @@
             "command": "cd /Users/malone/evo-api-ghl && grep -A 5 'extractPhoneFromJid' src/ghl/ghl.transformer.ts | head -10",
             "expected": "Method definition extracting phone from remoteJid"
           },
-          "status": "pending",
-          "notes": "Must handle both @s.whatsapp.net (individual) and @g.us (group) suffixes"
+          "status": "completed",
+          "notes": "Added extractPhoneFromJid() private helper method to GhlTransformer. Method handles both @s.whatsapp.net (individual) and @g.us (group) suffixes, returning clean phone number. Returns empty string for null/undefined input. Committed as 1a0184b.",
+          "updated_at": "2026-01-11T15:59:50.779693+00:00"
         },
         {
           "id": "subtask-2-2",
@@ -416,5 +417,5 @@
   "updated_at": "2026-01-11T15:57:02.593Z",
   "status": "in_progress",
   "planStatus": "in_progress",
-  "last_updated": "2026-01-11T15:58:50.170314+00:00"
+  "last_updated": "2026-01-11T15:59:50.779710+00:00"
 }

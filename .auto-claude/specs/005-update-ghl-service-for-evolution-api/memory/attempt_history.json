@@ -11,11 +11,23 @@
         }
       ],
       "status": "completed"
+    },
+    "subtask-1-2": {
+      "attempts": [
+        {
+          "session": 2,
+          "timestamp": "2026-01-11T17:15:39.243155",
+          "approach": "Implemented: Add Evolution API client import and Evolution webhook types",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
     }
   },
   "stuck_subtasks": [],
   "metadata": {
     "created_at": "2026-01-11T17:13:35.427313",
-    "last_updated": "2026-01-11T17:14:40.634327"
+    "last_updated": "2026-01-11T17:15:39.243184"
   }
 }

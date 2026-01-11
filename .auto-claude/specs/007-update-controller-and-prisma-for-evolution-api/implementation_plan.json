@@ -328,7 +328,9 @@
             "command": "grep '@Delete' src/ghl/ghl.controller.ts",
             "expected": "@Delete(':instanceName')"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Updated deleteInstance() method to use instanceName parameter instead of instanceId. Changed route decorator from @Delete(':instanceId') to @Delete(':instanceName'), updated parameter binding, removed BigInt conversions, and simplified the method by removing the redundant getInstance call inside the try block.",
+          "updated_at": "2026-01-11T16:48:36.774385+00:00"
         },
         {
           "id": "subtask-2-6",
@@ -515,5 +517,5 @@
   "created_at": "2026-01-11T14:27:12.159Z",
   "updated_at": "2026-01-11T19:00:00.000Z",
   "status": "planned",
-  "last_updated": "2026-01-11T16:47:24.397860+00:00"
+  "last_updated": "2026-01-11T16:48:36.774400+00:00"
 }

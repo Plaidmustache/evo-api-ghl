@@ -149,28 +149,32 @@ export class GhlController {
 		}
 	}
 
-	@Patch(":instanceId")
+	@Patch(":instanceName")
 	async updateInstance(
-		@Param("instanceId") instanceId: string,
+		@Param("instanceName") instanceName: string,
 		@Body() dto: UpdateInstanceDto,
+		@Req() req: AuthReq,
 	) {
-		this.logger.log(`Updating instance: ${instanceId}`);
+		const instance = await this.prisma.getInstance(instanceName);
+		if (!instance || (instance.userId !== req.locationId)) {
+			throw new HttpException("Unauthorized", HttpStatus.FORBIDDEN);
+		}
+		this.logger.log(`Updating instance: ${instanceName}`);
+
 		try {
-			let instance = await this.prisma.getInstance(BigInt(instanceId));
-			if (!instance) {
-				throw new HttpException("Instance not found", HttpStatus.NOT_FOUND);
-			}
+			let updatedInstance = instance;
 			if (dto.name) {
-				instance = await this.prisma.updateInstanceName(BigInt(instanceId), dto.name);
+				updatedInstance = await this.prisma.updateInstanceName(instanceName, dto.name);
 			}
 
 			return {
 				success: true,
 				instance: {
-					id: instance.idInstance.toString(),
-					name: instance.name || `Instance ${instance.idInstance}`,
-					state: instance.stateInstance,
-					createdAt: instance.createdAt,
+					id: updatedInstance.instanceName,
+					instanceName: updatedInstance.instanceName,
+					name: updatedInstance.name || `Instance ${updatedInstance.instanceName}`,
+					state: updatedInstance.stateInstance,
+					createdAt: updatedInstance.createdAt,
 				},
 			};
 		} catch (error) {

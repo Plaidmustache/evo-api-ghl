@@ -106,4 +106,39 @@ export class EvolutionApiClient {
 	protected getHttpClient(): AxiosInstance {
 		return this.httpClient;
 	}
+
+	/**
+	 * Sends a text message to a WhatsApp number via Evolution API.
+	 * @param instance - The Evolution API instance name
+	 * @param request - The send text request containing number and text
+	 * @returns The send message response with message details
+	 * @throws HttpException if the API request fails
+	 */
+	async sendText(
+		instance: string,
+		request: SendTextRequest,
+	): Promise<SendMessageResponse> {
+		this.logger.log(
+			`Sending text message via instance ${instance} to ${request.number}`,
+		);
+
+		try {
+			const { data } = await this.httpClient.post<SendMessageResponse>(
+				`/message/sendText/${instance}`,
+				request,
+			);
+
+			this.logger.log(
+				`Text message sent successfully via instance ${instance}. Message ID: ${data.key?.id}`,
+			);
+
+			return data;
+		} catch (error) {
+			// Error is already handled by the interceptor, just re-throw
+			this.logger.error(
+				`Failed to send text message via instance ${instance} to ${request.number}: ${error.message}`,
+			);
+			throw error;
+		}
+	}
 }

@@ -1,0 +1,73 @@
+=== AUTO-BUILD PROGRESS ===
+
+Project: Evolution API HTTP Client Service
+Spec: 002-create-evolution-api-http-client
+Started: 2026-01-11
+
+Workflow Type: feature
+Rationale: Greenfield implementation creating new files without modifying existing code. Standalone service that will eventually replace GREEN-API SDK.
+
+Session 1 (Planner):
+- Created implementation_plan.json
+- Phases: 3
+- Total subtasks: 12
+- Created init.sh
+- Created build-progress.txt
+- Updated context.json
+
+Phase Summary:
+- Phase 1 (Evolution API Client Service): 7 subtasks, no dependencies
+  - subtask-1-1: Create TypeScript interfaces for response types
+  - subtask-1-2: Create EvolutionApiClient with constructor and axios setup
+  - subtask-1-3: Implement sendText method
+  - subtask-1-4: Implement sendMedia method
+  - subtask-1-5: Implement getConnectionState method
+  - subtask-1-6: Implement setWebhook method
+  - subtask-1-7: Implement fetchInstances method
+
+- Phase 2 (NestJS Module Configuration): 1 subtask, depends on phase-1
+  - subtask-2-1: Create EvolutionModule with provider and export
+
+- Phase 3 (Build Validation): 4 subtasks, depends on phase-2
+  - subtask-3-1: Verify TypeScript compilation
+  - subtask-3-2: Verify all 6 methods implemented
+  - subtask-3-3: Verify Logger used (not console.log)
+  - subtask-3-4: Verify apikey header is lowercase
+
+Services Involved:
+- main: NestJS backend service (TypeScript, Prisma, axios)
+
+Files to Create:
+- src/evolution/evolution-api.types.ts
+- src/evolution/evolution-api.client.ts
+- src/evolution/evolution.module.ts
+
+Files to Reference (Patterns):
+- src/ghl/ghl.service.ts (axios HTTP client pattern)
+- src/prisma/prisma.module.ts (NestJS module pattern)
+- src/prisma/prisma.service.ts (Injectable service pattern)
+
+Key Implementation Notes:
+- Use NestJS Logger class (not console.log or GreenApiLogger)
+- Use lowercase 'apikey' header (not 'apiKey')
+- Set default timeout on axios instance
+- All methods need try-catch with error logging
+- Constructor accepts baseUrl and apiKey parameters
+
+Parallelism Analysis:
+- Max parallel phases: 1
+- Recommended workers: 1
+- Parallel groups: None (sequential execution)
+
+Risk Level: LOW
+- New isolated code - cannot break existing functionality
+- Simple HTTP wrapper with no security-critical operations
+- No database or infrastructure changes
+
+=== STARTUP COMMAND ===
+
+To continue building this spec, run:
+
+  source auto-claude/.venv/bin/activate && python auto-claude/run.py --spec 002 --parallel 1
+
+=== END SESSION 1 ===

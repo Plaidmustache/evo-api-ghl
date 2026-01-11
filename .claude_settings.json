@@ -1,0 +1,34 @@
+{
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
+  },
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Read(./**)",
+      "Write(./**)",
+      "Edit(./**)",
+      "Glob(./**)",
+      "Grep(./**)",
+      "Read(/Users/malone/evo-api-ghl/.worktrees/002-create-evolution-api-http-client/**)",
+      "Write(/Users/malone/evo-api-ghl/.worktrees/002-create-evolution-api-http-client/**)",
+      "Edit(/Users/malone/evo-api-ghl/.worktrees/002-create-evolution-api-http-client/**)",
+      "Glob(/Users/malone/evo-api-ghl/.worktrees/002-create-evolution-api-http-client/**)",
+      "Grep(/Users/malone/evo-api-ghl/.worktrees/002-create-evolution-api-http-client/**)",
+      "Read(/Users/malone/evo-api-ghl/.worktrees/002-create-evolution-api-http-client/.auto-claude/specs/002-create-evolution-api-http-client/**)",
+      "Write(/Users/malone/evo-api-ghl/.worktrees/002-create-evolution-api-http-client/.auto-claude/specs/002-create-evolution-api-http-client/**)",
+      "Edit(/Users/malone/evo-api-ghl/.worktrees/002-create-evolution-api-http-client/.auto-claude/specs/002-create-evolution-api-http-client/**)",
+      "Bash(*)",
+      "WebFetch(*)",
+      "WebSearch(*)",
+      "mcp__context7__resolve-library-id(*)",
+      "mcp__context7__get-library-docs(*)",
+      "mcp__graphiti-memory__search_nodes(*)",
+      "mcp__graphiti-memory__search_facts(*)",
+      "mcp__graphiti-memory__add_episode(*)",
+      "mcp__graphiti-memory__get_episodes(*)",
+      "mcp__graphiti-memory__get_entity_edge(*)"
+    ]
+  }
+}

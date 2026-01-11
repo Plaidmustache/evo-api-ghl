@@ -1,0 +1,25 @@
+{
+  "active": true,
+  "spec": "002-create-evolution-api-http-client",
+  "state": "building",
+  "subtasks": {
+    "completed": 2,
+    "total": 12,
+    "in_progress": 1,
+    "failed": 0
+  },
+  "phase": {
+    "current": "Evolution API Client Service",
+    "id": null,
+    "total": 7
+  },
+  "workers": {
+    "active": 0,
+    "max": 1
+  },
+  "session": {
+    "number": 3,
+    "started_at": "2026-01-11T15:46:40.723970"
+  },
+  "last_update": "2026-01-11T15:49:48.778548"
+}

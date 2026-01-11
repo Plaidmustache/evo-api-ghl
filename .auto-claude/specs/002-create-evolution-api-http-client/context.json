@@ -1,0 +1,33 @@
+{
+  "task_description": "Create a new Evolution API HTTP client service to replace the GREEN-API SDK.",
+  "scoped_services": ["main"],
+  "files_to_modify": [],
+  "files_to_create": [
+    "src/evolution/evolution-api.client.ts",
+    "src/evolution/evolution.module.ts"
+  ],
+  "files_to_reference": [
+    "src/prisma/prisma.module.ts",
+    "src/prisma/prisma.service.ts",
+    "src/ghl/ghl.service.ts",
+    "src/ghl/ghl.module.ts",
+    "src/app.module.ts"
+  ],
+  "patterns": {
+    "module_pattern": "@Global() @Module({ providers: [...], exports: [...] }) for app-wide services",
+    "service_pattern": "@Injectable() decorator on service classes",
+    "http_client_pattern": "axios.create({ baseURL, headers }) with response interceptors for error handling",
+    "logger_pattern": "Use NestJS Logger class: private readonly logger = new Logger(ClassName.name)",
+    "error_handling_pattern": "try-catch with logger.error() and HttpException throwing"
+  },
+  "existing_implementations": {
+    "description": "GhlService shows axios HTTP client patterns with interceptors and error handling",
+    "relevant_files": ["src/ghl/ghl.service.ts"]
+  },
+  "conventions": {
+    "lowercase_apikey_header": "Evolution API uses lowercase 'apikey' header, not 'apiKey'",
+    "instance_path_param": "Most endpoints use {instanceName} as path parameter",
+    "timeout_config": "Should set default timeout on axios instance"
+  },
+  "created_at": "2026-01-11T15:33:30.364870"
+}

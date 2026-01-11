@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "query": "Create a new Evolution API HTTP client service to replace the GREEN-API SDK.\n\n## Create new file: src/evolution/evolution-api.client.ts\n\nThis service handles all HTTP communication with Evolution API. All requests need the header: apikey: {apiKey}\n\n### Methods to implement:\n\n1. constructor(baseUrl: string, apiKey: string)\n\n2. sendText(instanceName: string, number: string, text: string)\n   - POST {baseUrl}/message/sendText/{instanceName}\n   - Body: { number, text }\n\n3. sendMedia(instanceName: string, number: string, mediaUrl: string, caption?: string, mediaType?: string)\n   - POST {baseUrl}/message/sendMedia/{instanceName}\n   - Body: { number, mediatype, media, caption }\n\n4. getConnectionState(instanceName: string)\n   - GET {baseUrl}/instance/connectionState/{instanceName}\n   - Returns: { state: 'open' | 'close' | 'connecting' }\n\n5. setWebhook(instanceName: string, webhookUrl: string, events: string[])\n   - POST {baseUrl}/webhook/set/{instanceName}\n   - Body: { url: webhookUrl, events, webhook_by_events: true }\n\n6. fetchInstances()\n   - GET {baseUrl}/instance/fetchInstances\n   - Returns list of all instances\n\n## Also create: src/evolution/evolution.module.ts\n- NestJS module that exports EvolutionApiClient as a provider\n\nUse axios for HTTP calls (already in package.json).\nInclude proper error handling and logging using NestJS Logger.",
+  "hints": [],
+  "hint_count": 0,
+  "created_at": "2026-01-11T15:33:26.589808"
+}

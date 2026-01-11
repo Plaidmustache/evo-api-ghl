@@ -1,0 +1,65 @@
+{
+  "complexity": "standard",
+  "workflow_type": "feature",
+  "confidence": 0.90,
+  "reasoning": "Creating a new HTTP client service with 2 files following existing NestJS/axios patterns. Evolution API endpoints are fully documented in requirements - no research needed. Contained to single new module with no cross-cutting changes.",
+
+  "analysis": {
+    "scope": {
+      "estimated_files": 2,
+      "estimated_services": 1,
+      "is_cross_cutting": false,
+      "notes": "Two new files: evolution-api.client.ts and evolution.module.ts. No modifications to existing files."
+    },
+    "integrations": {
+      "external_services": ["Evolution API"],
+      "new_dependencies": [],
+      "research_needed": false,
+      "notes": "Evolution API endpoints are fully specified in task requirements. REST API with standard GET/POST patterns. No SDK to learn - using axios which is already in the project."
+    },
+    "infrastructure": {
+      "docker_changes": false,
+      "database_changes": false,
+      "config_changes": false,
+      "notes": "baseUrl and apiKey are constructor parameters, not env vars. No infrastructure setup required for this task."
+    },
+    "knowledge": {
+      "patterns_exist": true,
+      "research_required": false,
+      "unfamiliar_tech": [],
+      "notes": "ghl.service.ts shows axios usage patterns with NestJS Logger and error handling. ghl.module.ts shows standard NestJS module structure. Can follow existing patterns directly."
+    },
+    "risk": {
+      "level": "low",
+      "concerns": ["Ensure API responses are handled correctly", "Error handling should be consistent with existing patterns"],
+      "notes": "New isolated code - cannot break existing functionality. Simple HTTP wrapper with no security-critical operations."
+    }
+  },
+
+  "recommended_phases": [
+    "discovery",
+    "requirements",
+    "context",
+    "spec_writing",
+    "planning",
+    "validation"
+  ],
+
+  "flags": {
+    "needs_research": false,
+    "needs_self_critique": false,
+    "needs_infrastructure_setup": false
+  },
+
+  "validation_recommendations": {
+    "risk_level": "low",
+    "skip_validation": false,
+    "minimal_mode": true,
+    "test_types_required": ["unit"],
+    "security_scan_required": false,
+    "staging_deployment_required": false,
+    "reasoning": "New HTTP client service with no database or auth changes. Unit tests sufficient to verify HTTP calls are made with correct endpoints, headers, and payloads. No security-sensitive operations."
+  },
+
+  "created_at": "2026-01-11T00:00:00.000Z"
+}

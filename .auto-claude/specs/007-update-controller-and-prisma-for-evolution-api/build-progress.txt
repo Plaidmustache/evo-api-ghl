@@ -1,0 +1,72 @@
+=== AUTO-BUILD PROGRESS ===
+
+Project: Evolution API → GoHighLevel Integration
+Spec: 007 - Update Controller and Prisma for Evolution API
+Workspace: /Users/malone/evo-api-ghl
+Started: 2026-01-11
+
+Workflow Type: feature
+Rationale: This is a feature implementation that introduces new Evolution API integration patterns while removing legacy Green API dependencies. It modifies core data structures, method signatures, and identifier strategies across two files.
+
+Session 1 (Planner):
+- Created implementation_plan.json
+- Phases: 3
+- Total subtasks: 14
+- Created init.sh
+- Updated context.json
+
+Phase Summary:
+- Phase 1 (Prisma Service Updates): 5 subtasks, depends on []
+  - Remove StorageProvider interface and Green API imports
+  - Update createInstance() for new schema fields
+  - Update getInstance() to use instanceName
+  - Update removeInstance() to use instanceName
+  - Update update* methods to use instanceName
+
+- Phase 2 (Controller Updates): 6 subtasks, depends on [phase-1-prisma]
+  - Replace GreenApiLogger with NestJS Logger
+  - Update CreateInstanceDto interface
+  - Update getInstances() response mapping
+  - Update createInstance() method
+  - Update deleteInstance() route and implementation
+  - Update updateInstance() route and implementation
+
+- Phase 3 (Verification): 3 subtasks, depends on [phase-2-controller]
+  - Verify TypeScript compilation
+  - Verify no Green API imports remain
+  - Verify no BigInt conversions remain
+
+Services Involved:
+- main: NestJS backend service (primary)
+  - Role: Controller and Prisma service updates for Evolution API
+
+Files to Modify:
+- src/ghl/ghl.controller.ts
+- src/prisma/prisma.service.ts
+
+Dependencies:
+- Assumes spec-001 has updated prisma/schema.prisma with instanceName, evolutionApiUrl, evolutionApiKey fields
+- Assumes spec-005 has added createEvolutionInstanceForUser() to ghl.service.ts
+
+Parallelism Analysis:
+- Max parallel phases: 1
+- Recommended workers: 1
+- Parallel groups: None (sequential execution required)
+- Reason: Controller depends on Prisma service method signatures
+
+Key Changes:
+- CreateInstanceDto: instanceId/apiToken -> instanceName/evolutionApiUrl/evolutionApiKey
+- All instance lookups: BigInt(idInstance) -> instanceName (string)
+- Logger: GreenApiLogger -> NestJS Logger
+- Imports: Remove @green-api/greenapi-integration from both files
+
+=== STARTUP COMMAND ===
+
+To continue building this spec, run:
+
+  source auto-claude/.venv/bin/activate && python auto-claude/run.py --spec 007 --parallel 1
+
+Example:
+  source auto-claude/.venv/bin/activate && python auto-claude/run.py --spec 007 --parallel 1
+
+=== END SESSION 1 ===

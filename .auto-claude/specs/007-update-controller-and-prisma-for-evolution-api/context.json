@@ -1,0 +1,33 @@
+{
+  "task_description": "Update the GHL controller and Prisma service to migrate from Green API BigInt identifiers to Evolution API string-based instanceName lookups. Remove Green API dependencies and update all method signatures.",
+  "scoped_services": ["main"],
+  "files_to_modify": {
+    "main": [
+      "src/ghl/ghl.controller.ts",
+      "src/prisma/prisma.service.ts"
+    ]
+  },
+  "files_to_reference": [
+    "src/ghl/ghl.service.ts",
+    "src/types.ts",
+    "prisma/schema.prisma"
+  ],
+  "patterns": {
+    "controller_pattern": "NestJS controllers use @Get/@Post/@Delete/@Patch decorators, HttpException for errors, structured responses with { success: true/false, ... }",
+    "prisma_pattern": "PrismaService extends PrismaClient, uses typed queries with include for relations, async methods return Promise<Type | null>",
+    "logger_pattern": "Use NestJS Logger with private readonly logger = new Logger(ClassName.name)",
+    "auth_pattern": "GhlContextGuard checks req.locationId matches route param or body locationId, throws HttpStatus.FORBIDDEN on mismatch"
+  },
+  "existing_implementations": {
+    "description": "Current code uses BigInt idInstance for all instance lookups, GreenApiLogger for logging, StorageProvider interface from @green-api/greenapi-integration",
+    "relevant_files": [
+      "src/ghl/ghl.controller.ts",
+      "src/prisma/prisma.service.ts"
+    ]
+  },
+  "dependencies": {
+    "assumes_schema_updated": "This task assumes spec-001 has updated prisma/schema.prisma to include instanceName, evolutionApiUrl, evolutionApiKey fields and new InstanceState enum (open/close/connecting)",
+    "assumes_service_updated": "This task assumes spec-005 has added createEvolutionInstanceForUser() method to ghl.service.ts"
+  },
+  "created_at": "2026-01-11T19:00:00.000Z"
+}

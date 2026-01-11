@@ -1,0 +1,101 @@
+=== AUTO-BUILD PROGRESS ===
+
+Project: Update Message Transformer for Evolution API
+Spec: 004
+Workspace: /Users/malone/evo-api-ghl
+Started: 2026-01-11
+
+Workflow Type: feature
+Rationale: Focused feature update modifying a single transformation module to support Evolution API format while maintaining backward compatibility with GHL integration. Changes are well-scoped with clear input/output contracts.
+
+Session 1 (Planner):
+- Created implementation_plan.json
+- Phases: 5
+- Total subtasks: 10
+- Created init.sh
+- Updated context.json
+
+=== PHASE SUMMARY ===
+
+Phase 1: Evolution API Webhook Types
+  - Subtasks: 1
+  - Depends on: None
+  - Create TypeScript interfaces for Evolution API webhook payloads
+
+Phase 2: Helper Methods Implementation
+  - Subtasks: 2
+  - Depends on: Phase 1
+  - Implement extractPhoneFromJid() and isGroupMessage() utilities
+
+Phase 3: Inbound Message Transformation
+  - Subtasks: 3
+  - Depends on: Phase 1, Phase 2
+  - Update toPlatformMessage() for Evolution API webhook format
+
+Phase 4: Outbound Message Transformation
+  - Subtasks: 2
+  - Depends on: Phase 1
+  - Rename toGreenApiMessage() to toEvolutionMessage(), update output format
+
+Phase 5: Cleanup and Integration
+  - Subtasks: 2
+  - Depends on: Phase 3, Phase 4
+  - Remove GREEN-API dependencies, update ghl.service.ts, verify build
+
+=== SERVICES INVOLVED ===
+
+- main (NestJS Backend)
+  - Port: 3000
+  - Command: npm run start:dev
+  - Primary file: src/ghl/ghl.transformer.ts
+
+=== FILES TO MODIFY ===
+
+- src/ghl/ghl.transformer.ts (complete refactor)
+- src/ghl/ghl.service.ts (method rename: toGreenApiMessage -> toEvolutionMessage)
+
+=== FILES TO CREATE ===
+
+- src/ghl/types/evolution-webhook.types.ts (Evolution API webhook interfaces)
+
+=== PARALLELISM ANALYSIS ===
+
+- Max parallel phases: 2
+- Recommended workers: 1 (sequential recommended for single-file focus)
+- Parallel groups:
+  - Phase 2 (helpers) and Phase 4 (outbound) can run in parallel
+    Reason: Both depend on Phase 1 but modify different code sections
+
+=== KEY CONSTRAINTS ===
+
+1. GhlPlatformMessage output format must remain UNCHANGED
+2. GhlWebhookDto input format must remain UNCHANGED
+3. All 6 message types must be handled:
+   - conversation
+   - extendedTextMessage
+   - imageMessage
+   - videoMessage
+   - audioMessage
+   - documentMessage
+4. GREEN-API SDK imports must be removed
+5. TypeScript must compile without errors
+
+=== VERIFICATION STRATEGY ===
+
+Risk Level: medium
+Test Types Required: unit, integration
+
+Verification Steps:
+1. TypeScript Build - npm run build
+2. GREEN-API Imports Removed - grep check
+3. Method Renamed - grep toEvolutionMessage
+4. All Message Types Handled - 6 case statements
+5. Helper Methods Exist - extractPhoneFromJid, isGroupMessage
+
+=== STARTUP COMMAND ===
+
+To continue building this spec, run:
+
+  source auto-claude/.venv/bin/activate && python auto-claude/run.py --spec 004 --parallel 1
+
+=== END SESSION 1 ===

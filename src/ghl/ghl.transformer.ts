@@ -15,6 +15,19 @@ export class GhlTransformer
 	implements MessageTransformer<GhlWebhookDto, GhlPlatformMessage> {
 	private readonly logger = GreenApiLogger.getInstance(GhlTransformer.name);
 
+	/**
+	 * Extracts clean phone number from WhatsApp JID format
+	 * @param jid - WhatsApp JID (e.g., "5511999999999@s.whatsapp.net" or "5511999999999@g.us")
+	 * @returns Clean phone number without suffix (e.g., "5511999999999")
+	 */
+	private extractPhoneFromJid(jid: string): string {
+		if (!jid) {
+			return "";
+		}
+		// Remove @s.whatsapp.net (individual) or @g.us (group) suffix
+		return jid.replace(/@s\.whatsapp\.net$/, "").replace(/@g\.us$/, "");
+	}
+
 	toPlatformMessage(webhook: GreenApiWebhook): GhlPlatformMessage {
 		this.logger.debug(`Transforming Green API webhook to GHL Platform Message: ${JSON.stringify(webhook)}`);
 		let messageText = "";

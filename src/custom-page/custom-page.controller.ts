@@ -428,29 +428,19 @@ export class CustomPageController {
             letter-spacing: 0.5px;
           }
           
-          .status-badge.authorized {
+          .status-badge.open {
             background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
             color: #155724;
           }
-          
-          .status-badge.notAuthorized {
+
+          .status-badge.close {
             background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
             color: #721c24;
           }
-          
-          .status-badge.starting {
+
+          .status-badge.connecting {
             background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
             color: #856404;
-          }
-          
-          .status-badge.yellowCard {
-            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
-            color: #856404;
-          }
-          
-          .status-badge.blocked {
-            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
-            color: #721c24;
           }
           
           .instance-name {
@@ -625,18 +615,7 @@ export class CustomPageController {
             flex: 1;
             min-width: 100px;
           }
-			
-          .btn[title*="Console"] {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            position: relative;
-          }
-			
-          .btn[title*="Console"]:hover {
-            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
-          }
-          
+
           @media (max-width: 768px) {
 		    .instance-actions {
 			  flex-direction: column;
@@ -737,23 +716,28 @@ export class CustomPageController {
                 <h2>➕ Add New Instance</h2>
                 <form id="instanceForm">
                   <div class="form-group">
-                    <label for="instanceId">Instance ID</label>
-                    <input type="text" id="instanceId" name="instanceId" placeholder="e.g., 1234567890" required>
+                    <label for="instanceName">Instance Name</label>
+                    <input type="text" id="instanceName" name="instanceName" placeholder="e.g., my-whatsapp-instance" required>
                   </div>
-                  
+
                   <div class="form-group">
-                    <label for="apiToken">API Token</label>
-                    <input type="text" id="apiToken" name="apiToken" placeholder="Your GREEN-API token" required>
+                    <label for="evolutionApiUrl">Evolution API URL</label>
+                    <input type="url" id="evolutionApiUrl" name="evolutionApiUrl" placeholder="e.g., https://evolution.yourdomain.com" required>
                   </div>
-                  
+
                   <div class="form-group">
-                    <label for="instanceName">Instance Name (optional)</label>
-                    <input type="text" id="instanceName" name="instanceName" placeholder="e.g., Sales Team WhatsApp">
+                    <label for="evolutionApiKey">API Key</label>
+                    <input type="password" id="evolutionApiKey" name="evolutionApiKey" placeholder="Your Evolution API global key" required>
                   </div>
-                  
+
+                  <div class="form-group">
+                    <label for="displayName">Display Name (optional)</label>
+                    <input type="text" id="displayName" name="displayName" placeholder="e.g., Sales Team WhatsApp">
+                  </div>
+
                   <button type="submit" id="submitBtn" class="btn">Add Instance</button>
                 </form>
-                
+
                 <div id="result"></div>
               </div>
             </div>
@@ -899,11 +883,6 @@ export class CustomPageController {
                 }
               }, 10000);
             }
-            
-            openGreenApiConsole(instanceId) {
-			  const consoleUrl = \`https://console.green-api.com/instanceList/\${instanceId}\`;
-			  window.open(consoleUrl, '_blank', 'noopener,noreferrer');
-			}
 
             handleMessage(event) {
               if (event.data && event.data.message === 'REQUEST_USER_DATA_RESPONSE') {
@@ -1035,14 +1014,12 @@ export class CustomPageController {
                     <input type="text" id="name-input-\${instance.id}" value="\${instance.name || ''}" class="hidden">
                     <button id="edit-btn-\${instance.id}" onclick="window.instanceHandler.editInstanceName('\${instance.id}')" class="btn secondary hidden">Save</button>
                   </div>
-                  <div class="instance-id">Instance ID: \${instance.id}</div>
+                  <div class="instance-id">Instance: \${instance.instanceName || instance.id}</div>
                   <div class="instance-meta">
+                    <strong>API URL:</strong> \${instance.evolutionApiUrl || 'N/A'}<br>
                     <strong>Created:</strong> \${new Date(instance.createdAt).toLocaleDateString()}
                   </div>
                   <div class="instance-actions">
-                  	<button onclick="window.instanceHandler.openGreenApiConsole('\${instance.id}')" class="btn" title="Open GREEN-API Console">
-					  Open Console
-					</button>
                     <button onclick="window.instanceHandler.toggleEditMode('\${instance.id}')" class="btn secondary">Edit Name</button>
                     <button class="btn danger" onclick="window.instanceHandler.deleteInstance('\${instance.id}')">Delete</button>
                   </div>
@@ -1136,9 +1113,10 @@ export class CustomPageController {
               
               const payload = {
                 locationId: this.locationId,
-                instanceId: formData.get('instanceId'),
-                apiToken: formData.get('apiToken'),
-                name: formData.get('instanceName') || undefined
+                instanceName: formData.get('instanceName'),
+                evolutionApiUrl: formData.get('evolutionApiUrl'),
+                evolutionApiKey: formData.get('evolutionApiKey'),
+                name: formData.get('displayName') || undefined
               };
 
               submitBtn.disabled = true;

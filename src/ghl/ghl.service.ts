@@ -169,7 +169,7 @@ export class GhlService {
 			locationId: ghlUserId,
 			phone: formattedPhone,
 			name: contactName,
-			source: "GREEN-API",
+			source: "EVOLUTION-API",
 			tags: instanceId ? tags : undefined,
 		};
 

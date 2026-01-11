@@ -1,22 +1,69 @@
-import { Injectable } from "@nestjs/common";
-import {
-	MessageTransformer,
-	Message,
-	GreenApiWebhook,
-	formatPhoneNumber,
-	GreenApiLogger,
-	extractPhoneNumberFromVCard,
-} from "@green-api/greenapi-integration";
+import { Injectable, Logger } from "@nestjs/common";
 import { GhlWebhookDto } from "./dto/ghl-webhook.dto";
 import { GhlPlatformMessage } from "../types";
+
+// Type definitions for Evolution API messages
+export interface EvolutionMessage {
+	type: "text" | "url-file";
+	chatId: string;
+	message?: string;
+	file?: {
+		url: string;
+		fileName: string;
+	};
+	caption?: string;
+}
+
+// MessageTransformer interface for converting between platforms
+export interface MessageTransformer<TIncoming, TPlatform> {
+	toPlatformMessage(webhook: EvolutionWebhook): TPlatform;
+	toEvolutionMessage(incoming: TIncoming): EvolutionMessage;
+}
+
+// Evolution API webhook structure
+export interface EvolutionWebhook {
+	typeWebhook: string;
+	instanceData?: {
+		idInstance: number | string;
+		wid?: string;
+	};
+	timestamp: number;
+	senderData?: {
+		chatId: string;
+		chatName?: string;
+		sender?: string;
+		senderName?: string;
+		senderContactName?: string;
+	};
+	messageData?: any;
+	from?: string;
+	status?: string;
+	stateInstance?: string;
+}
+
+// Helper function to format phone number for chat ID
+function formatPhoneNumber(phone: string, type: "private" | "group" = "private"): string {
+	const cleaned = phone.replace(/\D/g, "");
+	return type === "group" ? `${cleaned}@g.us` : `${cleaned}@c.us`;
+}
+
+// Helper function to extract phone number from vCard
+function extractPhoneNumberFromVCard(vcard: string): string | null {
+	if (!vcard) return null;
+	const telMatch = vcard.match(/TEL[^:]*:([+\d\s-]+)/i);
+	if (telMatch && telMatch[1]) {
+		return telMatch[1].replace(/\s|-/g, "").trim();
+	}
+	return null;
+}
 
 @Injectable()
 export class GhlTransformer
 	implements MessageTransformer<GhlWebhookDto, GhlPlatformMessage> {
-	private readonly logger = GreenApiLogger.getInstance(GhlTransformer.name);
+	private readonly logger = new Logger(GhlTransformer.name);
 
-	toPlatformMessage(webhook: GreenApiWebhook): GhlPlatformMessage {
-		this.logger.debug(`Transforming Green API webhook to GHL Platform Message: ${JSON.stringify(webhook)}`);
+	toPlatformMessage(webhook: EvolutionWebhook): GhlPlatformMessage {
+		this.logger.debug(`Transforming Evolution API webhook to GHL Platform Message: ${JSON.stringify(webhook)}`);
 		let messageText = "";
 		const attachments: GhlPlatformMessage["attachments"] = [];
 
@@ -191,7 +238,7 @@ export class GhlTransformer
 					break;
 
 				default:
-					this.logger.warn(`Unsupported GREEN-API message type`, msgData);
+					this.logger.warn(`Unsupported Evolution API message type`, msgData);
 					messageText = "User sent an unsupported message type";
 			}
 
@@ -241,17 +288,17 @@ export class GhlTransformer
 			};
 		}
 
-		this.logger.error(`Cannot transform unsupported Green API webhook type: ${webhook.typeWebhook}`);
+		this.logger.error(`Cannot transform unsupported Evolution API webhook type: ${webhook.typeWebhook}`);
 		return {
 			contactId: "error_contact_id",
 			locationId: "error_location_id",
-			message: `Error: Unsupported Green API webhook type ${webhook.typeWebhook}`,
+			message: `Error: Unsupported Evolution API webhook type ${webhook.typeWebhook}`,
 			direction: "inbound",
 		};
 	}
 
-	toGreenApiMessage(ghlWebhook: GhlWebhookDto): Message {
-		this.logger.debug(`Transforming GHL Webhook to Green API Message: ${JSON.stringify(ghlWebhook)}`);
+	toEvolutionMessage(ghlWebhook: GhlWebhookDto): EvolutionMessage {
+		this.logger.debug(`Transforming GHL Webhook to Evolution API Message: ${JSON.stringify(ghlWebhook)}`);
 
 		if (ghlWebhook.type === "SMS" && ghlWebhook.phone) {
 			const isGroupChatId = ghlWebhook.phone.length > 16;
@@ -283,6 +330,6 @@ export class GhlTransformer
 		}
 
 		this.logger.error(`Cannot transform GHL webhook. Type: ${ghlWebhook.type}, Phone: ${ghlWebhook.phone}, Msg: ${ghlWebhook.message}`);
-		throw new Error(`Unsupported GHL webhook for Green API. Type: ${ghlWebhook.type}, Phone: ${ghlWebhook.phone}`);
+		throw new Error(`Unsupported GHL webhook for Evolution API. Type: ${ghlWebhook.type}, Phone: ${ghlWebhook.phone}`);
 	}
 }

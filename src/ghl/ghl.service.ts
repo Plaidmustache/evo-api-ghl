@@ -628,26 +628,6 @@ export class GhlService {
 		}
 	}
 
-	public async handleStateInstanceWebhook(webhook: StateInstanceWebhook): Promise<void> {
-		const idInstance = BigInt(webhook.instanceData.idInstance);
-		this.logger.log(`StateInstanceWebhook for instance ${idInstance}. New state: ${webhook.stateInstance}`);
-		try {
-			const dbInstance = await this.prisma.updateInstanceState(idInstance, webhook.stateInstance);
-			const currentSettings = dbInstance.settings || {};
-			if (webhook.instanceData.wid && webhook.instanceData.wid !== currentSettings.wid) {
-				await this.prisma.updateInstanceSettings(idInstance, {
-					...currentSettings,
-					wid: webhook.instanceData.wid,
-				});
-				this.logger.log(`Instance ${idInstance} WID updated to ${webhook.instanceData.wid}.`);
-			}
-			this.logger.log(`Instance ${idInstance} state updated to ${webhook.stateInstance}.`);
-		} catch (error) {
-			this.logger.error(`Failed to update instance state for ${idInstance}: ${error.message}`, error.stack);
-			throw error;
-		}
-	}
-
 	public async createEvolutionInstanceForUser(
 		ghlUserId: string,
 		instanceName: string,

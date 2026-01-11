@@ -30,8 +30,7 @@ export class WebhooksController {
 		this.logger.debug(`Evolution Webhook Body: ${JSON.stringify(webhook)}`);
 		res.status(HttpStatus.OK).send();
 		try {
-			// TODO: Rename to handleEvolutionWebhook when ghl.service.ts is updated (subtask-3-2)
-			await this.ghlService.handleGreenApiWebhook(webhook as any, ["incomingMessageReceived", "stateInstanceChanged", "incomingCall"]);
+			await this.ghlService.handleEvolutionWebhook(webhook as any, ["incomingMessageReceived", "stateInstanceChanged", "incomingCall"]);
 		} catch (error) {
 			this.logger.error(`Error processing Evolution webhook`, error);
 		}

@@ -136,4 +136,11 @@ export class PrismaService
 			include: {user: true},
 		});
 	}
+
+	async getInstanceByName(name: string): Promise<(Instance & { user: User }) | null> {
+		return this.instance.findFirst({
+			where: { name },
+			include: { user: true },
+		});
+	}
 }

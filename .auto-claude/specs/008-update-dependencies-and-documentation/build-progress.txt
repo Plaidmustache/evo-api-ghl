@@ -1,0 +1,108 @@
+=== AUTO-BUILD PROGRESS ===
+
+Project: Evolution API → GoHighLevel Integration
+Task: Update Dependencies and Documentation (GREEN-API Migration Cleanup)
+Workspace: /Users/malone/evo-api-ghl
+Started: 2026-01-11
+
+Workflow Type: feature
+Rationale: This is a feature workflow completing the migration from GREEN-API to Evolution API. It involves updating package metadata, removing the old dependency, cleaning up source code references, and rebranding all documentation.
+
+Session 1 (Planner):
+- Created implementation_plan.json
+- Phases: 5
+- Total subtasks: 18
+- Created init.sh
+
+Phase Summary:
+- Phase 1 (Package Metadata): 2 subtasks - Update package.json, run npm install
+- Phase 2 (Guard Cleanup): 2 subtasks - Delete greenapi-webhook.guard.ts, update module
+- Phase 3 (Source Cleanup): 9 subtasks - Remove GREEN-API references from all source files
+- Phase 4 (Documentation): 4 subtasks - Rebrand README.md, README.ru.md, CLAUDE.md, .env.example
+- Phase 5 (Verification): 3 subtasks - Build verification, grep checks
+
+Services Involved:
+- main: NestJS adapter service (TypeScript, port 3000)
+
+Files to Modify:
+- package.json (remove @green-api/greenapi-integration, update name/description)
+- src/webhooks/guards/greenapi-webhook.guard.ts (DELETE)
+- src/webhooks/webhooks.module.ts (update imports)
+- src/webhooks/webhooks.controller.ts
+- src/main.ts
+- src/prisma/prisma.service.ts
+- src/filters/validation-exception.filter.ts
+- src/ghl/ghl.controller.ts
+- src/ghl/ghl.service.ts
+- src/ghl/ghl.transformer.ts
+- src/oauth/oauth.controller.ts
+- src/custom-page/custom-page.controller.ts
+- README.md (complete rebrand)
+- README.ru.md (complete rebrand)
+- CLAUDE.md (update references)
+- .env.example (verify documentation)
+
+Key Findings from Investigation:
+1. @green-api/greenapi-integration dependency is imported in 11 source files
+2. Previous worktrees (001-007) have created Evolution API replacements
+3. Guard file greenapi-webhook.guard.ts needs to be deleted (replaced by evolution-webhook.guard.ts)
+4. Both README.md and README.ru.md need complete rebranding
+5. GreenApiLogger used throughout codebase needs replacement with NestJS Logger
+
+Parallelism Analysis:
+- Max parallel phases: 1
+- Recommended workers: 1
+- Parallel groups: None (sequential execution required due to file dependencies)
+
+Risk Assessment:
+- Level: HIGH
+- Concerns:
+  - Removing dependency breaks 11 source files
+  - All GREEN-API imports must be replaced
+  - Build will fail until all imports are updated
+
+=== STARTUP COMMAND ===
+
+To continue building this spec, run:
+
+  source auto-claude/.venv/bin/activate && python auto-claude/run.py --spec 008 --parallel 1
+
+Example:
+  source auto-claude/.venv/bin/activate && python auto-claude/run.py --spec 008 --parallel 1
+
+=== IMPORTANT DEPENDENCY NOTE ===
+
+This task ASSUMES that previous worktree changes (tasks 001-007) have been merged.
+Those tasks provide:
+- Evolution API client (src/evolution/evolution-api.client.ts)
+- Evolution webhook guard (src/webhooks/guards/evolution-webhook.guard.ts)
+- Evolution webhook DTO and types
+- Updated transformers and services
+
+If those changes are NOT present, Phase 2 and 3 will need to create the Evolution API
+implementations rather than just cleaning up GREEN-API references.
+
+=== END SESSION 1 ===
+
+=== SESSION 2 (Builder - subtask-1-2) ===
+Date: 2026-01-11
+
+Subtask: Run npm install to regenerate package-lock.json
+
+Findings:
+- npm command is not available in the sandbox environment
+- Verified package-lock.json is already correctly synchronized with package.json:
+  - Name: "evolution-api-gohighlevel" (correct)
+  - Version: "1.2.3" (correct)
+  - No @green-api/greenapi-integration dependency found (verified with grep)
+  - All dependencies match between package.json and package-lock.json
+
+Resolution:
+- Since package-lock.json already matches package.json (no @green-api references),
+  the lock file is in the correct state
+- Full npm install verification should be performed during merge/deployment
+  outside the sandbox environment
+
+Status: COMPLETED (lock file verified as consistent)
+
+=== END SESSION 2 ===

@@ -1,0 +1,10 @@
+{
+  "discovered_files": {
+    "src/prisma/prisma.service.ts": {
+      "description": "Removed Green API StorageProvider interface - class now only implements OnModuleInit. Settings type replaced with Record<string, unknown>.",
+      "category": "refactoring",
+      "discovered_at": "2026-01-11T16:39:44.314252+00:00"
+    }
+  },
+  "last_updated": "2026-01-11T16:39:44.314264+00:00"
+}

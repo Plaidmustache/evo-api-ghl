@@ -3,7 +3,7 @@
   "spec": "007-update-controller-and-prisma-for-evolution-api",
   "state": "building",
   "subtasks": {
-    "completed": 0,
+    "completed": 1,
     "total": 14,
     "in_progress": 1,
     "failed": 0
@@ -18,8 +18,8 @@
     "max": 1
   },
   "session": {
-    "number": 1,
+    "number": 2,
     "started_at": "2026-01-11T17:38:56.328614"
   },
-  "last_update": "2026-01-11T17:38:56.387701"
+  "last_update": "2026-01-11T17:39:56.583679"
 }

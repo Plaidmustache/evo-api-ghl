@@ -57,6 +57,8 @@ export class GhlController {
 			success: true,
 			instances: instances.map(instance => ({
 				id: instance.idInstance.toString(),
+				instanceName: instance.instanceName,
+				evolutionApiUrl: instance.evolutionApiUrl,
 				name: instance.name || `Instance ${instance.idInstance}`,
 				state: instance.stateInstance,
 				createdAt: instance.createdAt,

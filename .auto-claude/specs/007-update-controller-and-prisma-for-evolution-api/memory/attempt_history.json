@@ -59,11 +59,35 @@
         }
       ],
       "status": "completed"
+    },
+    "subtask-2-1": {
+      "attempts": [
+        {
+          "session": 6,
+          "timestamp": "2026-01-11T17:44:21.284310",
+          "approach": "Implemented: Replace GreenApiLogger with NestJS Logger and update imports",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
+    },
+    "subtask-2-2": {
+      "attempts": [
+        {
+          "session": 7,
+          "timestamp": "2026-01-11T17:45:23.270893",
+          "approach": "Implemented: Update CreateInstanceDto interface for Evolution API",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
     }
   },
   "stuck_subtasks": [],
   "metadata": {
     "created_at": "2026-01-11T17:38:56.328261",
-    "last_updated": "2026-01-11T17:43:24.184696"
+    "last_updated": "2026-01-11T17:45:23.270913"
   }
 }

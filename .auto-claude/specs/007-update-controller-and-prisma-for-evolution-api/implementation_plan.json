@@ -203,7 +203,9 @@
             "command": "grep -c '@green-api/greenapi-integration' src/ghl/ghl.controller.ts || echo '0'",
             "expected": "0"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Replaced GreenApiLogger with NestJS Logger. Removed @green-api/greenapi-integration import and added Logger to @nestjs/common imports. Updated logger instantiation from GreenApiLogger.getInstance() to new Logger().",
+          "updated_at": "2026-01-11T16:44:15.282368+00:00"
         },
         {
           "id": "subtask-2-2",
@@ -236,7 +238,9 @@
             "command": "grep -A5 'interface CreateInstanceDto' src/ghl/ghl.controller.ts | grep instanceName",
             "expected": "instanceName found in DTO"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Updated CreateInstanceDto interface: replaced instanceId (string) with instanceName (string), replaced apiToken (string) with evolutionApiUrl (string) and evolutionApiKey (string). Verification passed - instanceName found in DTO.",
+          "updated_at": "2026-01-11T16:45:13.848651+00:00"
         },
         {
           "id": "subtask-2-3",
@@ -507,5 +511,5 @@
   "created_at": "2026-01-11T14:27:12.159Z",
   "updated_at": "2026-01-11T19:00:00.000Z",
   "status": "planned",
-  "last_updated": "2026-01-11T16:43:19.061541+00:00"
+  "last_updated": "2026-01-11T16:45:13.848668+00:00"
 }

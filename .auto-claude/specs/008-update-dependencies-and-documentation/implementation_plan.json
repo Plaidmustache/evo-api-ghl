@@ -180,7 +180,9 @@
             "command": "grep -i 'green' src/filters/validation-exception.filter.ts | wc -l",
             "expected": "0 (no GREEN-API references)"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Replaced GreenApiLogger with NestJS Logger in validation-exception.filter.ts. Verification passed: 0 GREEN-API references found.",
+          "updated_at": "2026-01-11T21:10:16.620814+00:00"
         },
         {
           "id": "subtask-3-5",
@@ -534,7 +536,7 @@
   },
   "qa_signoff": null,
   "dependencies_note": "IMPORTANT: This task assumes that previous worktree changes (tasks 001-007) have been merged, providing Evolution API client, webhook guard, and type definitions. If those changes are not present, Phase 2 and 3 will need to create the Evolution API implementations rather than just cleaning up GREEN-API references.",
-  "last_updated": "2026-01-11T21:09:21.417498+00:00",
+  "last_updated": "2026-01-11T21:10:16.620827+00:00",
   "status": "in_progress",
   "planStatus": "in_progress",
   "updated_at": "2026-01-11T21:00:05.138Z"

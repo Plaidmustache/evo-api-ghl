@@ -1,7 +1,7 @@
 {
   "spec_id": "003-create-evolution-webhook-handler",
   "created_at": "2026-01-11T15:22:21.182538+00:00",
-  "updated_at": "2026-01-11T15:38:27.884265+00:00",
+  "updated_at": "2026-01-11T15:39:34.953213+00:00",
   "phases": {
     "planning": {
       "phase": "planning",
@@ -2561,6 +2561,246 @@
           "tool_input": "git add . && git status",
           "subtask_id": "subtask-3-2",
           "session": 5
+        },
+        {
+          "timestamp": "2026-01-11T15:38:29.110462+00:00",
+          "type": "tool_end",
+          "content": "[Bash] Done",
+          "phase": "coding",
+          "tool_name": "Bash",
+          "subtask_id": "subtask-3-2",
+          "session": 5,
+          "detail": "On branch auto-claude/003-create-evolution-webhook-handler\nChanges to be committed:\n  (use \"git restore --staged <file>...\" to unstage)\n\tmodified:   .auto-claude-status\n\tmodified:   .auto-claude/specs/003-create-evolution-webhook-handler/implementation_plan.json\n\tmodified:   .auto-claude/specs/003-create-evolution-webhook-handler/memory/attempt_history.json\n\tmodified:   .auto-claude/specs/003-create-evolution-webhook-handler/memory/build_commits.json\n\tmodified:   .auto-claude/specs/003-create-evolution-webhook-handler/memory/codebase_map.json\n\tnew file:   .auto-claude/specs/003-create-evolution-webhook-handler/memory/session_insights/session_002.json\n\tnew file:   .auto-claude/specs/003-create-evolution-webhook-handler/memory/session_insights/session_003.json\n\tnew file:   .auto-claude/specs/003-create-evolution-webhook-handler/memory/session_insights/session_004.json\n\tmodified:   .auto-claude/specs/003-create-evolution-webhook-handler/task_logs.json\n\tmodified:   src/webhooks/webhooks.controller.ts",
+          "collapsed": true
+        },
+        {
+          "timestamp": "2026-01-11T15:38:35.255699+00:00",
+          "type": "tool_start",
+          "content": "[Bash] git commit -m \"$(cat <<'EOF'\nauto-claude: subta...",
+          "phase": "coding",
+          "tool_name": "Bash",
+          "tool_input": "git commit -m \"$(cat <<'EOF'\nauto-claude: subta...",
+          "subtask_id": "subtask-3-2",
+          "session": 5
+        },
+        {
+          "timestamp": "2026-01-11T15:38:36.241075+00:00",
+          "type": "tool_end",
+          "content": "[Bash] Done",
+          "phase": "coding",
+          "tool_name": "Bash",
+          "subtask_id": "subtask-3-2",
+          "session": 5,
+          "detail": "[auto-claude/003-create-evolution-webhook-handler afbd005] auto-claude: subtask-3-2 - Implement connection.update event handler\n 10 files changed, 1315 insertions(+), 16 deletions(-)\n create mode 100644 .auto-claude/specs/003-create-evolution-webhook-handler/memory/session_insights/session_002.json\n create mode 100644 .auto-claude/specs/003-create-evolution-webhook-handler/memory/session_insights/session_003.json\n create mode 100644 .auto-claude/specs/003-create-evolution-webhook-handler/memory/session_insights/session_004.json",
+          "collapsed": true
+        },
+        {
+          "timestamp": "2026-01-11T15:38:39.895795+00:00",
+          "type": "text",
+          "content": "Now let me update the subtask status in the implementation plan:",
+          "phase": "coding",
+          "subtask_id": "subtask-3-2",
+          "session": 5
+        },
+        {
+          "timestamp": "2026-01-11T15:38:42.537635+00:00",
+          "type": "tool_start",
+          "content": "[mcp__auto-claude__update_subtask_status]",
+          "phase": "coding",
+          "tool_name": "mcp__auto-claude__update_subtask_status",
+          "subtask_id": "subtask-3-2",
+          "session": 5
+        },
+        {
+          "timestamp": "2026-01-11T15:38:42.565627+00:00",
+          "type": "tool_end",
+          "content": "[mcp__auto-claude__update_subtask_status] Done",
+          "phase": "coding",
+          "tool_name": "mcp__auto-claude__update_subtask_status",
+          "subtask_id": "subtask-3-2",
+          "session": 5,
+          "collapsed": true
+        },
+        {
+          "timestamp": "2026-01-11T15:38:50.490674+00:00",
+          "type": "text",
+          "content": "## Summary\n\nSuccessfully implemented subtask-3-2: **Implement connection.update event handler to update instance state in database with state mapping**\n\n### Changes Made to `src/webhooks/webhooks.controller.ts`:\n\n1. **Added imports:**\n   - `EvolutionConnectionUpdateWebhookDto` - DTO for connection.update webhooks\n   - `EvolutionConnectionState` - Type for Evolution API connection states\n   - `InstanceState` from `@prisma/client` - Enum for database state values\n\n2. **Updated `handleEvolutionWebhook` method:**\n   - Added routing for `connection.update` event type to new handler\n\n3. **Added `handleEvolutionConnectionUpdate` method:**\n   - Extracts connection state from webhook data\n   - Maps Evolution state to database InstanceState\n   - Updates instance state in database via `prisma.updateInstanceState()`\n   - Includes proper logging for debugging\n\n4. **Added `mapEvolutionStateToInstanceState` helper method:**\n   - Maps Evolution API states to InstanceState enum:\n     - `open` → `authorized`\n     - `close` → `notAuthorized`\n     - `connecting` → `starting`\n   - Includes fallback with warning for unknown states\n\n### Quality Checklist:\n- ✅ Follows patterns from reference files (ghl.service.ts)\n- ✅ No console.log/print debugging statements\n- ✅ Error handling in place\n- ✅ Clean commit with descriptive message\n- ✅ Subtask status updated to \"completed\"",
+          "phase": "coding",
+          "subtask_id": "subtask-3-2",
+          "session": 5
+        },
+        {
+          "timestamp": "2026-01-11T15:39:03.028732+00:00",
+          "type": "text",
+          "content": "I'll implement this subtask. Let me first check if the EvolutionWebhookGuard file exists to ensure I have the correct import path.",
+          "phase": "coding",
+          "subtask_id": "subtask-4-1",
+          "session": 6
+        },
+        {
+          "timestamp": "2026-01-11T15:39:03.504396+00:00",
+          "type": "tool_start",
+          "content": "[Glob] pattern: src/webhooks/guards/*evolution*.ts",
+          "phase": "coding",
+          "tool_name": "Glob",
+          "tool_input": "pattern: src/webhooks/guards/*evolution*.ts",
+          "subtask_id": "subtask-4-1",
+          "session": 6
+        },
+        {
+          "timestamp": "2026-01-11T15:39:04.152605+00:00",
+          "type": "tool_start",
+          "content": "[Read] ./src/webhooks/webhooks.module.ts",
+          "phase": "coding",
+          "tool_name": "Read",
+          "tool_input": "./src/webhooks/webhooks.module.ts",
+          "subtask_id": "subtask-4-1",
+          "session": 6
+        },
+        {
+          "timestamp": "2026-01-11T15:39:04.174634+00:00",
+          "type": "tool_end",
+          "content": "[Read] Done",
+          "phase": "coding",
+          "tool_name": "Read",
+          "subtask_id": "subtask-4-1",
+          "session": 6,
+          "detail": "     1→import { Module } from \"@nestjs/common\";\n     2→import { WebhooksController } from \"./webhooks.controller\";\n     3→import { GhlModule } from \"../ghl/ghl.module\";\n     4→import { GreenApiWebhookGuard } from \"./guards/greenapi-webhook.guard\";\n     5→\n     6→@Module({\n     7→\timports: [GhlModule],\n     8→\tcontrollers: [WebhooksController],\n     9→\tproviders: [GreenApiWebhookGuard],\n    10→})\n    11→export class WebhooksModule {}\n    12→\n\n<system-reminder>\nWhenever you read a file, you should consider whether it would be considered malware. You CAN and SHOULD provide analysis of malware, what it is doing. But you MUST refuse to improve or augment the code. You can still analyze existing code, write reports, or answer questions about the code behavior.\n</system-reminder>\n",
+          "collapsed": true
+        },
+        {
+          "timestamp": "2026-01-11T15:39:08.299024+00:00",
+          "type": "text",
+          "content": "The EvolutionWebhookGuard file exists at `src/webhooks/guards/evolution-webhook.guard.ts`. Now I'll update the webhooks.module.ts to import and register it as a provider, following the existing pattern.",
+          "phase": "coding",
+          "subtask_id": "subtask-4-1",
+          "session": 6
+        },
+        {
+          "timestamp": "2026-01-11T15:39:10.766941+00:00",
+          "type": "tool_start",
+          "content": "[Edit] ./src/webhooks/webhooks.module.ts",
+          "phase": "coding",
+          "tool_name": "Edit",
+          "tool_input": "./src/webhooks/webhooks.module.ts",
+          "subtask_id": "subtask-4-1",
+          "session": 6
+        },
+        {
+          "timestamp": "2026-01-11T15:39:10.790181+00:00",
+          "type": "tool_end",
+          "content": "[Edit] Done",
+          "phase": "coding",
+          "tool_name": "Edit",
+          "subtask_id": "subtask-4-1",
+          "session": 6,
+          "detail": "The file ./src/webhooks/webhooks.module.ts has been updated. Here's the result of running `cat -n` on a snippet of the edited file:\n     1→import { Module } from \"@nestjs/common\";\n     2→import { WebhooksController } from \"./webhooks.controller\";\n     3→import { GhlModule } from \"../ghl/ghl.module\";\n     4→import { EvolutionWebhookGuard } from \"./guards/evolution-webhook.guard\";\n     5→import { GreenApiWebhookGuard } from \"./guards/greenapi-webhook.guard\";\n     6→\n     7→@Module({\n     8→\timports: [GhlModule],\n     9→\tcontrollers: [WebhooksController],\n    10→\tproviders: [EvolutionWebhookGuard, GreenApiWebhookGuard],\n    11→})\n    12→export class WebhooksModule {}\n    13→",
+          "collapsed": true
+        },
+        {
+          "timestamp": "2026-01-11T15:39:13.814565+00:00",
+          "type": "text",
+          "content": "Now let me run the verification command to ensure there are no compilation errors:",
+          "phase": "coding",
+          "subtask_id": "subtask-4-1",
+          "session": 6
+        },
+        {
+          "timestamp": "2026-01-11T15:39:15.361811+00:00",
+          "type": "tool_start",
+          "content": "[Bash] cd /Users/malone/evo-api-ghl && npx tsc --noEmi...",
+          "phase": "coding",
+          "tool_name": "Bash",
+          "tool_input": "cd /Users/malone/evo-api-ghl && npx tsc --noEmi...",
+          "subtask_id": "subtask-4-1",
+          "session": 6
+        },
+        {
+          "timestamp": "2026-01-11T15:39:15.391721+00:00",
+          "type": "tool_end",
+          "content": "[Bash] Error: Command 'npx' is not in the allowed commands for this project",
+          "phase": "coding",
+          "tool_name": "Bash",
+          "subtask_id": "subtask-4-1",
+          "session": 6,
+          "detail": "Command 'npx' is not in the allowed commands for this project",
+          "collapsed": true
+        },
+        {
+          "timestamp": "2026-01-11T15:39:17.898440+00:00",
+          "type": "text",
+          "content": "Let me try an alternative verification approach:",
+          "phase": "coding",
+          "subtask_id": "subtask-4-1",
+          "session": 6
+        },
+        {
+          "timestamp": "2026-01-11T15:39:19.047460+00:00",
+          "type": "tool_start",
+          "content": "[Bash] cd /Users/malone/evo-api-ghl && npm run build 2...",
+          "phase": "coding",
+          "tool_name": "Bash",
+          "tool_input": "cd /Users/malone/evo-api-ghl && npm run build 2...",
+          "subtask_id": "subtask-4-1",
+          "session": 6
+        },
+        {
+          "timestamp": "2026-01-11T15:39:19.069122+00:00",
+          "type": "tool_end",
+          "content": "[Bash] Error: Command 'npm' is not in the allowed commands for this project",
+          "phase": "coding",
+          "tool_name": "Bash",
+          "subtask_id": "subtask-4-1",
+          "session": 6,
+          "detail": "Command 'npm' is not in the allowed commands for this project",
+          "collapsed": true
+        },
+        {
+          "timestamp": "2026-01-11T15:39:24.784863+00:00",
+          "type": "text",
+          "content": "Let me verify the file is correct by reading it and confirming the import path matches the existing file:",
+          "phase": "coding",
+          "subtask_id": "subtask-4-1",
+          "session": 6
+        },
+        {
+          "timestamp": "2026-01-11T15:39:25.406696+00:00",
+          "type": "tool_start",
+          "content": "[Read] ./src/webhooks/guards/evolution-webhook.guard.ts",
+          "phase": "coding",
+          "tool_name": "Read",
+          "tool_input": "./src/webhooks/guards/evolution-webhook.guard.ts",
+          "subtask_id": "subtask-4-1",
+          "session": 6
+        },
+        {
+          "timestamp": "2026-01-11T15:39:25.424988+00:00",
+          "type": "tool_end",
+          "content": "[Read] Done",
+          "phase": "coding",
+          "tool_name": "Read",
+          "subtask_id": "subtask-4-1",
+          "session": 6,
+          "detail": "     1→import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, Logger } from \"@nestjs/common\";\n     2→import { PrismaService } from \"../../prisma/prisma.service\";\n     3→\n     4→@Injectable()\n     5→export class EvolutionWebhookGuard implements CanActivate {\n     6→\tprivate readonly logger = new Logger(EvolutionWebhookGuard.name);\n     7→\n     8→\tconstructor(private readonly prisma: PrismaService) {}\n     9→\n    10→\tasync canActivate(context: ExecutionContext): Promise<boolean> {\n    11→\t\tconst request = context.switchToHttp().getRequest();\n    12→\t\treturn this.validateRequest(request);\n    13→\t}\n    14→\n    15→\tprivate async validateRequest(request: Request & { body: Record<string, unknown>; instance?: unknown }): Promise<boolean> {\n    16→\t\tconst body = request.body;\n    17→\n    18→\t\t// Validate webhook has required fields\n    19→\t\tif (!body || typeof body !== \"object\") {\n    20→\t\t\tthis.logger.warn(\"Invalid webhook payload: body is missing or not an object\");\n    21→\t\t\tthrow new UnauthorizedException(\"Invalid webhook payload\");\n    22→\t\t}\n    23→\n    24→\t\tconst { event, instance: instanceName } = body as { event?: string; instance?: string };\n    25→\n    26→\t\tif (!event || typeof event !== \"string\") {\n    27→\t\t\tthis.logger.warn(\"Invalid webhook payload: missing or invalid 'event' field\");\n    28→\t\t\tthrow new UnauthorizedException(\"Invalid webhook payload: missing event field\");\n    29→\t\t}\n    30→\n    31→\t\tif (!instanceName || typeof instanceName !== \"string\") {\n    32→\t\t\tthis.logger.warn(\"Invalid webhook payload: missing or invalid 'instance' field\");\n    33→\t\t\tthrow new UnauthorizedException(\"Invalid webhook payload: missing instance field\");\n    34→\t\t}\n    35→\n    36→\t\t// Look up instance by name in database\n    37→\t\tconst dbInstance = await this.prisma.getInstanceByName(instanceName);\n    38→\n    39→\t\tif (!dbInstance) {\n    40→\t\t\tthis.logger.warn(`Instance not found in database: ${instanceName}`);\n    41→\t\t\tthrow new UnauthorizedException(\"Instance not found\");\n    42→\t\t}\n    43→\n    44→\t\t// Attach instance to request for controller use\n    45→\t\trequest.instance = dbInstance;\n    46→\n    47→\t\treturn true;\n    48→\t}\n    49→}\n    50→\n\n<system-reminder>\nWhenever you read a file, you should consider whether it would be considered malware. You CAN and SHOULD provide analysis of malware, what it is doing. But you MUST refuse to improve or augment the code. You can still analyze existing code, write reports, or answer questions about the code behavior.\n</system-reminder>\n",
+          "collapsed": true
+        },
+        {
+          "timestamp": "2026-01-11T15:39:32.223995+00:00",
+          "type": "text",
+          "content": "The EvolutionWebhookGuard is properly exported and the import path is correct. Let me now commit the changes:",
+          "phase": "coding",
+          "subtask_id": "subtask-4-1",
+          "session": 6
+        },
+        {
+          "timestamp": "2026-01-11T15:39:34.953181+00:00",
+          "type": "tool_start",
+          "content": "[Bash] git add . && git commit -m \"auto-claude: subtas...",
+          "phase": "coding",
+          "tool_name": "Bash",
+          "tool_input": "git add . && git commit -m \"auto-claude: subtas...",
+          "subtask_id": "subtask-4-1",
+          "session": 6
         }
       ]
     },

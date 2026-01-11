@@ -138,8 +138,9 @@
             "command": "cd /Users/malone/evo-api-ghl && npx tsc --noEmit src/webhooks/webhooks.controller.ts",
             "expected": "No compilation errors"
           },
-          "status": "pending",
-          "notes": "Map Evolution states: open->authorized, close->notAuthorized, connecting->starting. Use PrismaService.updateInstanceState()"
+          "status": "completed",
+          "notes": "Implemented connection.update event handler: 1) Added handleEvolutionConnectionUpdate method that extracts state from webhook and updates instance in database, 2) Added mapEvolutionStateToInstanceState helper with state mapping (open->authorized, close->notAuthorized, connecting->starting), 3) Updated handleEvolutionWebhook to route connection.update events to the new handler, 4) Added imports for EvolutionConnectionUpdateWebhookDto, EvolutionConnectionState, and InstanceState. Follows existing patterns from ghl.service.ts and uses PrismaService.updateInstanceState().",
+          "updated_at": "2026-01-11T15:38:42.544713+00:00"
         }
       ]
     },
@@ -302,5 +303,5 @@
     }
   },
   "qa_signoff": null,
-  "last_updated": "2026-01-11T15:36:57.493459+00:00"
+  "last_updated": "2026-01-11T15:38:42.544726+00:00"
 }

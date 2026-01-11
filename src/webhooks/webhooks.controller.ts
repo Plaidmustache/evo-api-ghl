@@ -6,11 +6,11 @@ import {
 	HttpCode,
 	HttpStatus, Res, BadRequestException,
 	Headers,
+	Logger,
 } from "@nestjs/common";
 import { GhlService } from "../ghl/ghl.service";
-import { GreenApiLogger, GreenApiWebhook } from "@green-api/greenapi-integration";
 import { GhlWebhookDto } from "../ghl/dto/ghl-webhook.dto";
-import { GreenApiWebhookGuard } from "./guards/greenapi-webhook.guard";
+import { EvolutionWebhookGuard } from "./guards/evolution-webhook.guard";
 import { Response } from "express";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service";
@@ -19,20 +19,21 @@ import { WorkflowTokenGuard } from "./guards/workflow-token.guard";
 
 @Controller("webhooks")
 export class WebhooksController {
-	private readonly logger = GreenApiLogger.getInstance(WebhooksController.name);
+	private readonly logger = new Logger(WebhooksController.name);
 
 	constructor(private readonly ghlService: GhlService, private configService: ConfigService, private prisma: PrismaService) {}
 
-	@Post("green-api")
-	@UseGuards(GreenApiWebhookGuard)
+	@Post("evolution")
+	@UseGuards(EvolutionWebhookGuard)
 	@HttpCode(HttpStatus.OK)
-	async handleGreenApiWebhook(@Body() webhook: GreenApiWebhook, @Res() res: Response): Promise<void> {
-		this.logger.debug(`Green API Webhook Body: ${JSON.stringify(webhook)}`);
+	async handleEvolutionWebhook(@Body() webhook: Record<string, unknown>, @Res() res: Response): Promise<void> {
+		this.logger.debug(`Evolution Webhook Body: ${JSON.stringify(webhook)}`);
 		res.status(HttpStatus.OK).send();
 		try {
-			await this.ghlService.handleGreenApiWebhook(webhook, ["incomingMessageReceived", "stateInstanceChanged", "incomingCall"]);
+			// TODO: Rename to handleEvolutionWebhook when ghl.service.ts is updated (subtask-3-2)
+			await this.ghlService.handleGreenApiWebhook(webhook as any, ["incomingMessageReceived", "stateInstanceChanged", "incomingCall"]);
 		} catch (error) {
-			this.logger.error(`Error processing Green API webhook`, error);
+			this.logger.error(`Error processing Evolution webhook`, error);
 		}
 	}
 
@@ -103,11 +104,11 @@ export class WebhooksController {
 		try {
 			if (!ghlWebhook.userId) {
 				if (ghlWebhook.message && ghlWebhook.message.endsWith("\f\f\f\f\f")) {
-					this.logger.info(`Skipping workflow message with marker for location ${locationId}`);
+					this.logger.log(`Skipping workflow message with marker for location ${locationId}`);
 					res.status(HttpStatus.OK).send();
 					return;
 				}
-				this.logger.info(`Processing message without userId (likely bot message) for location ${locationId}`);
+				this.logger.log(`Processing message without userId (likely bot message) for location ${locationId}`);
 			}
 			const conversationProviderId = ghlWebhook.conversationProviderId === this.configService.get("GHL_CONVERSATION_PROVIDER_ID");
 

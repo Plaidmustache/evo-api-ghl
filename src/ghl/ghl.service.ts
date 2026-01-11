@@ -403,7 +403,7 @@ export class GhlService {
 		}
 
 		const evolutionClient = new EvolutionApiClient(settings.evolutionApiUrl, settings.evolutionApiKey);
-		const transformedMessage = this.ghlTransformer.toGreenApiMessage(ghlWebhook);
+		const transformedMessage = this.ghlTransformer.toEvolutionMessage(ghlWebhook);
 
 		this.logger.log(`Transformed GHL message to Evolution API format for instance ${idInstance}`);
 		this.logger.debug(`Evolution API Message: ${JSON.stringify(transformedMessage)}`);

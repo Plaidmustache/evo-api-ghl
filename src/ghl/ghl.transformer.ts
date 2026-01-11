@@ -250,8 +250,8 @@ export class GhlTransformer
 		};
 	}
 
-	toGreenApiMessage(ghlWebhook: GhlWebhookDto): Message {
-		this.logger.debug(`Transforming GHL Webhook to Green API Message: ${JSON.stringify(ghlWebhook)}`);
+	toEvolutionMessage(ghlWebhook: GhlWebhookDto): Message {
+		this.logger.debug(`Transforming GHL Webhook to Evolution API Message: ${JSON.stringify(ghlWebhook)}`);
 
 		if (ghlWebhook.type === "SMS" && ghlWebhook.phone) {
 			const isGroupChatId = ghlWebhook.phone.length > 16;
@@ -283,6 +283,6 @@ export class GhlTransformer
 		}
 
 		this.logger.error(`Cannot transform GHL webhook. Type: ${ghlWebhook.type}, Phone: ${ghlWebhook.phone}, Msg: ${ghlWebhook.message}`);
-		throw new Error(`Unsupported GHL webhook for Green API. Type: ${ghlWebhook.type}, Phone: ${ghlWebhook.phone}`);
+		throw new Error(`Unsupported GHL webhook for Evolution API. Type: ${ghlWebhook.type}, Phone: ${ghlWebhook.phone}`);
 	}
 }

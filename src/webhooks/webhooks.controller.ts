@@ -5,34 +5,32 @@ import {
 	UseGuards,
 	HttpCode,
 	HttpStatus, Res, BadRequestException,
-	Headers,
+	Headers, Logger,
 } from "@nestjs/common";
 import { GhlService } from "../ghl/ghl.service";
-import { GreenApiLogger, GreenApiWebhook } from "@green-api/greenapi-integration";
 import { GhlWebhookDto } from "../ghl/dto/ghl-webhook.dto";
-import { GreenApiWebhookGuard } from "./guards/greenapi-webhook.guard";
 import { Response } from "express";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service";
 import { WorkflowActionDto } from "../ghl/dto/workflow-action.dto";
 import { WorkflowTokenGuard } from "./guards/workflow-token.guard";
+import type { EvolutionWebhook } from "../ghl/types/evolution-webhook.types";
 
 @Controller("webhooks")
 export class WebhooksController {
-	private readonly logger = GreenApiLogger.getInstance(WebhooksController.name);
+	private readonly logger = new Logger(WebhooksController.name);
 
 	constructor(private readonly ghlService: GhlService, private configService: ConfigService, private prisma: PrismaService) {}
 
-	@Post("green-api")
-	@UseGuards(GreenApiWebhookGuard)
+	@Post("evolution")
 	@HttpCode(HttpStatus.OK)
-	async handleGreenApiWebhook(@Body() webhook: GreenApiWebhook, @Res() res: Response): Promise<void> {
-		this.logger.debug(`Green API Webhook Body: ${JSON.stringify(webhook)}`);
+	async handleEvolutionWebhook(@Body() webhook: EvolutionWebhook, @Res() res: Response): Promise<void> {
+		this.logger.debug(`Evolution API Webhook Body: ${JSON.stringify(webhook)}`);
 		res.status(HttpStatus.OK).send();
 		try {
-			await this.ghlService.handleGreenApiWebhook(webhook, ["incomingMessageReceived", "stateInstanceChanged", "incomingCall"]);
+			await this.ghlService.handleEvolutionWebhook(webhook);
 		} catch (error) {
-			this.logger.error(`Error processing Green API webhook`, error);
+			this.logger.error(`Error processing Evolution API webhook`, error);
 		}
 	}
 

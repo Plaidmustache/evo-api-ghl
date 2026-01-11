@@ -7,18 +7,18 @@ import {
 	Body,
 	Param,
 	HttpException,
-	HttpStatus, Req, UseGuards,
+	HttpStatus, Req, UseGuards, Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { GhlService } from "./ghl.service";
-import { GreenApiLogger } from "@green-api/greenapi-integration";
 import { AuthReq } from "../types";
 import { GhlContextGuard } from "./guards/ghl-context.guard";
 
 interface CreateInstanceDto {
 	locationId: string;
-	instanceId: string;
-	apiToken: string;
+	instanceName: string;
+	evolutionApiUrl: string;
+	evolutionApiKey: string;
 	name?: string;
 }
 
@@ -29,7 +29,7 @@ interface UpdateInstanceDto {
 @Controller("api/instances")
 @UseGuards(GhlContextGuard)
 export class GhlController {
-	private readonly logger = GreenApiLogger.getInstance(GhlController.name);
+	private readonly logger = new Logger(GhlController.name);
 
 	constructor(
 		private readonly prisma: PrismaService,
@@ -79,10 +79,11 @@ export class GhlController {
 		}
 
 		try {
-			const instance = await this.ghlService.createGreenApiInstanceForUser(
+			const instance = await this.ghlService.createEvolutionInstanceForUser(
 				dto.locationId,
-				BigInt(dto.instanceId),
-				dto.apiToken,
+				dto.instanceName,
+				dto.evolutionApiUrl,
+				dto.evolutionApiKey,
 				dto.name,
 			);
 
@@ -103,7 +104,7 @@ export class GhlController {
 			}
 
 			if (error.code === "INVALID_CREDENTIALS") {
-				throw new HttpException("Invalid GREEN-API credentials", HttpStatus.BAD_REQUEST);
+				throw new HttpException("Invalid Evolution API credentials", HttpStatus.BAD_REQUEST);
 			}
 
 			throw new HttpException(

@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, NotFoundException } from "@nestjs/common";
+import { Injectable, OnModuleInit, NotFoundException, Logger } from "@nestjs/common";
 import {
 	InstanceState,
 	PrismaClient,
@@ -6,22 +6,13 @@ import {
 	Instance,
 	Prisma,
 } from "@prisma/client";
-import {
-	StorageProvider,
-	Settings,
-} from "@green-api/greenapi-integration";
 import { UserCreateData, UserUpdateData } from "../types";
 
 @Injectable()
 export class PrismaService
 	extends PrismaClient
-	implements OnModuleInit,
-		StorageProvider<
-			User,
-			Instance,
-			UserCreateData,
-			UserUpdateData
-		> {
+	implements OnModuleInit {
+	private readonly logger = new Logger(PrismaService.name);
 	async onModuleInit() {
 		await this.$connect();
 	}
@@ -124,7 +115,7 @@ export class PrismaService
 		});
 	}
 
-	async updateInstanceSettings(idInstance: number | bigint, settings: Settings): Promise<Instance> {
+	async updateInstanceSettings(idInstance: number | bigint, settings: Record<string, unknown>): Promise<Instance> {
 		return this.instance.update({
 			where: {idInstance: BigInt(idInstance)},
 			data: {settings: settings || {}},

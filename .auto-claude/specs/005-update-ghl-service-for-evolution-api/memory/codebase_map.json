@@ -1,0 +1,10 @@
+{
+  "discovered_files": {
+    "src/ghl/ghl.service.ts": {
+      "description": "handleWorkflowAction method uses EvolutionApiClient for all action types. Interactive buttons and reply buttons are converted to text messages since Evolution API doesn't support native buttons. Source field updated from GREEN-API to EVOLUTION-API.",
+      "category": "pattern",
+      "discovered_at": "2026-01-11T16:35:22.891291+00:00"
+    }
+  },
+  "last_updated": "2026-01-11T16:35:22.891307+00:00"
+}

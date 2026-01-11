@@ -68,8 +68,9 @@
             "command": "grep -E 'GreenApiLogger|gaLogger' src/ghl/ghl.service.ts || echo 'No GreenApiLogger references'",
             "expected": "No GreenApiLogger references"
           },
-          "status": "pending",
-          "notes": "Add 'private readonly logger = new Logger(GhlService.name)'. Replace all this.gaLogger with this.logger. Logger has .log(), .warn(), .error(), .debug() methods (not .info())"
+          "status": "completed",
+          "notes": "Replaced GreenApiLogger with NestJS native Logger. Added Logger import from @nestjs/common, created private readonly logger = new Logger(GhlService.name), and replaced all this.gaLogger references with this.logger. Converted .info() calls to .log() as NestJS Logger doesn't have .info() method.",
+          "updated_at": "2026-01-11T16:16:43.876729+00:00"
         }
       ]
     },
@@ -99,8 +100,9 @@
             "command": "grep 'createEvolutionInstanceForUser' src/ghl/ghl.service.ts && echo 'Method renamed'",
             "expected": "Method renamed"
           },
-          "status": "pending",
-          "notes": "New signature: (ghlUserId, instanceName, evolutionApiUrl, evolutionApiKey, name?). Steps: 1) Create EvolutionApiClient(evolutionApiUrl, evolutionApiKey), 2) Call getConnectionState(instanceName) to verify, 3) Map state: open->authorized, 4) Call setWebhook() with events MESSAGES_UPSERT and CONNECTION_UPDATE, 5) Save to database with new schema, 6) Return instance"
+          "status": "completed",
+          "notes": "Successfully renamed createGreenApiInstanceForUser to createEvolutionInstanceForUser. Updated method signature to accept (ghlUserId, instanceName, evolutionApiUrl, evolutionApiKey, name?). Uses EvolutionApiClient for connection state verification and webhook registration. Maps Evolution state 'open' to 'authorized'. Stores Evolution API credentials in settings JSON for database compatibility. Replaced custom errors with NestJS HttpException. Note: Controller reference to old method name exists but is out of scope for this subtask - will be addressed in integration phase.",
+          "updated_at": "2026-01-11T16:20:08.708152+00:00"
         },
         {
           "id": "subtask-2-2",
@@ -116,8 +118,9 @@
             "command": "grep 'createGreenApiClient' src/ghl/ghl.service.ts || echo 'Method removed'",
             "expected": "Method removed"
           },
-          "status": "pending",
-          "notes": "This method is no longer needed - EvolutionApiClient is instantiated directly where needed with (evolutionApiUrl, evolutionApiKey)"
+          "status": "completed",
+          "notes": "Removed all createGreenApiClient usages from GhlService. Replaced with direct EvolutionApiClient instantiation in both handlePlatformWebhook and handleWorkflowAction. Evolution API credentials are read from instance.settings. Interactive buttons and reply buttons are converted to text messages (Evolution API doesn't support native buttons). Response message IDs now use sendResponse.key.id format.",
+          "updated_at": "2026-01-11T16:23:42.623075+00:00"
         }
       ]
     },
@@ -148,8 +151,9 @@
             "command": "grep 'handleEvolutionWebhook' src/ghl/ghl.service.ts && echo 'Method renamed'",
             "expected": "Method renamed"
           },
-          "status": "pending",
-          "notes": "New signature: handleEvolutionWebhook(webhook: EvolutionWebhook). Parse {event, instance, data}. Look up by instanceName. For messages.upsert: use transformer.toPlatformMessage(), For connection.update: call updated handleConnectionUpdate()"
+          "status": "completed",
+          "notes": "Renamed handleGreenApiWebhook to handleEvolutionWebhook. Created src/ghl/types/evolution-webhook.types.ts with Evolution API webhook types (EvolutionWebhook, EvolutionMessage, etc.). Updated method to handle Evolution webhook format with {event, instance, data} structure. Added helper methods: processEvolutionMessage for processing individual messages, transformEvolutionMessageToGhl for message transformation, and handleConnectionUpdate for connection state changes. Uses instanceName to idInstance hash conversion for database lookups (same approach as createEvolutionInstanceForUser). Replaced IntegrationError/NotFoundError with HttpException from NestJS. Note: handleStateInstanceWebhook method still exists using old GREEN-API types - will be handled in subtask-3-2.",
+          "updated_at": "2026-01-11T16:27:52.629639+00:00"
         },
         {
           "id": "subtask-3-2",
@@ -167,8 +171,9 @@
             "command": "grep -E 'handleConnectionUpdate|connection.update' src/ghl/ghl.service.ts && echo 'Connection handler updated'",
             "expected": "Connection handler updated"
           },
-          "status": "pending",
-          "notes": "Rename to handleConnectionUpdate. Accept Evolution format. Use new InstanceState enum values: open, close, connecting"
+          "status": "completed",
+          "notes": "Removed deprecated handleStateInstanceWebhook method that referenced non-existent StateInstanceWebhook type. Connection state updates are now handled by handleConnectionUpdate method for Evolution API CONNECTION_UPDATE events.",
+          "updated_at": "2026-01-11T16:29:22.405633+00:00"
         }
       ]
     },
@@ -200,8 +205,9 @@
             "command": "grep -E 'evolutionClient\\.(sendText|sendMedia)' src/ghl/ghl.service.ts && echo 'Using Evolution client'",
             "expected": "Using Evolution client"
           },
-          "status": "pending",
-          "notes": "Create EvolutionApiClient(instance.evolutionApiUrl, instance.evolutionApiKey). Use transformer.toEvolutionMessage(ghlWebhook). Check result type: if has 'text' property use sendText(), if has 'mediatype' use sendMedia(). Instance lookup changes to use instanceName."
+          "status": "completed",
+          "notes": "Updated handlePlatformWebhook to use EvolutionApiClient for sending messages. Created src/evolution/evolution-api.client.ts with EvolutionApiClient class (sendText, sendMedia, getConnectionState, setWebhook methods). Created src/evolution/evolution.module.ts for module exports. Replaced NotFoundError/IntegrationError with HttpException, renamed gaResponse to sendResponse, updated return type to EvolutionSendResponse, fixed formatPhoneNumber dependency with direct regex, fixed SendInteractiveButtons type references. Verification passed - grep confirms evolutionClient.sendText and evolutionClient.sendMedia usage.",
+          "updated_at": "2026-01-11T16:33:58.085663+00:00"
         },
         {
           "id": "subtask-4-2",
@@ -219,8 +225,9 @@
             "command": "grep -E 'greenApiClient' src/ghl/ghl.service.ts || echo 'No greenApiClient references'",
             "expected": "No greenApiClient references"
           },
-          "status": "pending",
-          "notes": "Replace greenApiClient with EvolutionApiClient. For 'message': use sendText(). For 'file': use sendMedia(). For 'interactive-buttons' and 'reply-buttons': Evolution API may not support - convert to text message with button options listed."
+          "status": "completed",
+          "notes": "Verified handleWorkflowAction uses EvolutionApiClient for all action types: (1) message: evolutionClient.sendText(), (2) file: evolutionClient.sendMedia(), (3) interactive-buttons: converted to text via evolutionClient.sendText(), (4) reply-buttons: converted to text via evolutionClient.sendText(). Updated contact source from 'GREEN-API' to 'EVOLUTION-API' for consistency. Verification passed - no greenApiClient references remain.",
+          "updated_at": "2026-01-11T16:35:18.560967+00:00"
         }
       ]
     },
@@ -445,5 +452,5 @@
   "updated_at": "2026-01-11T16:13:03.912Z",
   "status": "in_progress",
   "planStatus": "in_progress",
-  "last_updated": "2026-01-11T16:15:33.901145+00:00"
+  "last_updated": "2026-01-11T16:35:18.560979+00:00"
 }

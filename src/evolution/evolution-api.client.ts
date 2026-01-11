@@ -204,4 +204,39 @@ export class EvolutionApiClient {
 			throw error;
 		}
 	}
+
+	/**
+	 * Configures the webhook URL and events for a WhatsApp instance.
+	 * @param instance - The Evolution API instance name
+	 * @param request - The webhook configuration containing URL and event types
+	 * @returns The webhook configuration response
+	 * @throws HttpException if the API request fails
+	 */
+	async setWebhook(
+		instance: string,
+		request: SetWebhookRequest,
+	): Promise<SetWebhookResponse> {
+		this.logger.log(
+			`Setting webhook for instance ${instance} to URL: ${request.url}`,
+		);
+
+		try {
+			const { data } = await this.httpClient.post<SetWebhookResponse>(
+				`/webhook/set/${instance}`,
+				request,
+			);
+
+			this.logger.log(
+				`Webhook configured successfully for instance ${instance}. Events: ${data.webhook?.events?.join(", ")}`,
+			);
+
+			return data;
+		} catch (error) {
+			// Error is already handled by the interceptor, just re-throw
+			this.logger.error(
+				`Failed to set webhook for instance ${instance}: ${error.message}`,
+			);
+			throw error;
+		}
+	}
 }

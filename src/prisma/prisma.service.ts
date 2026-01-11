@@ -119,23 +119,23 @@ export class PrismaService
 		});
 	}
 
-	async updateInstanceSettings(idInstance: number | bigint, settings: Record<string, unknown>): Promise<Instance> {
+	async updateInstanceSettings(instanceName: string, settings: Record<string, unknown>): Promise<Instance> {
 		return this.instance.update({
-			where: {idInstance: BigInt(idInstance)},
+			where: {instanceName},
 			data: {settings: settings || {}},
 		});
 	}
 
-	async updateInstanceState(idInstance: number | bigint, state: InstanceState): Promise<Instance> {
+	async updateInstanceState(instanceName: string, state: InstanceState): Promise<Instance> {
 		return this.instance.update({
-			where: {idInstance: BigInt(idInstance)},
+			where: {instanceName},
 			data: {stateInstance: state},
 		});
 	}
 
-	async updateInstanceName(idInstance: number | bigint, name: string): Promise<Instance & { user: User }> {
+	async updateInstanceName(instanceName: string, name: string): Promise<Instance & { user: User }> {
 		return this.instance.update({
-			where: {idInstance: BigInt(idInstance)},
+			where: {instanceName},
 			data: {name},
 			include: {user: true},
 		});

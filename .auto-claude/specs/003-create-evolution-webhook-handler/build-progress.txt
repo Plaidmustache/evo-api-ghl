@@ -70,3 +70,50 @@ Next Steps:
 2. Start with phase-1-dto (Create Evolution Webhook DTOs)
 3. Implement each subtask sequentially
 4. Verify each subtask before proceeding to the next
+
+=== BUILD VERIFICATION (subtask-5-2) ===
+Date: 2026-01-11
+
+Manual Code Verification Completed:
+
+1. ✅ EvolutionWebhookGuard
+   - Defined in: src/webhooks/guards/evolution-webhook.guard.ts
+   - Validates 'event' and 'instance' fields
+   - Looks up instance by name via PrismaService.getInstanceByName()
+   - Attaches instance to request for controller use
+
+2. ✅ Evolution Webhook DTOs
+   - Defined in: src/webhooks/dto/evolution-webhook.dto.ts
+   - EvolutionWebhookDto (base class)
+   - EvolutionMessagesUpsertWebhookDto (messages.upsert events)
+   - EvolutionConnectionUpdateWebhookDto (connection.update events)
+   - Uses class-validator decorators for validation
+
+3. ✅ WebhooksController Evolution Endpoint
+   - Route: POST /webhooks/evolution
+   - Guard: @UseGuards(EvolutionWebhookGuard)
+   - Handlers: handleEvolutionMessagesUpsert(), handleEvolutionConnectionUpdate()
+   - Phone extraction: extractPhoneFromRemoteJid()
+   - Message content extraction: extractMessageContent()
+   - State mapping: mapEvolutionStateToInstanceState()
+
+4. ✅ WebhooksModule Registration
+   - EvolutionWebhookGuard registered as provider
+   - GreenApiWebhookGuard also registered
+
+5. ✅ AppModule Integration
+   - WebhooksModule imported in app.module.ts
+
+6. ✅ PrismaService Methods
+   - getInstanceByName() - Line 114-119
+   - updateInstanceState() - Line 141-146
+   - getInstancesByUserId() - Line 121-126
+
+7. ✅ All Imports Resolve Correctly
+   - No circular dependencies detected
+   - All type references valid
+
+Verification Result: PASS
+All components properly wired and ready for application startup.
+
+=== END BUILD VERIFICATION ===

@@ -84,18 +84,21 @@ export class GhlController {
 		}
 
 		try {
-			const instance = await this.ghlService.createGreenApiInstanceForUser(
+			const instance = await this.ghlService.createEvolutionInstanceForUser(
 				dto.locationId,
-				BigInt(dto.instanceId),
-				dto.apiToken,
+				dto.instanceName,
+				dto.evolutionApiUrl,
+				dto.evolutionApiKey,
 				dto.name,
 			);
 
 			return {
 				success: true,
 				instance: {
-					id: instance.idInstance.toString(),
-					name: instance.name || `Instance ${instance.idInstance}`,
+					id: instance.instanceName,
+					instanceName: instance.instanceName,
+					evolutionApiUrl: instance.evolutionApiUrl,
+					name: instance.name || `Instance ${instance.instanceName}`,
 					state: instance.stateInstance,
 					createdAt: instance.createdAt,
 				},
@@ -104,11 +107,11 @@ export class GhlController {
 			this.logger.error(`Error creating instance: ${error.message}`, error.stack);
 
 			if (error.message.includes("already exists")) {
-				throw new HttpException("Instance ID already exists", HttpStatus.CONFLICT);
+				throw new HttpException("Instance already exists", HttpStatus.CONFLICT);
 			}
 
 			if (error.code === "INVALID_CREDENTIALS") {
-				throw new HttpException("Invalid GREEN-API credentials", HttpStatus.BAD_REQUEST);
+				throw new HttpException("Invalid Evolution API credentials", HttpStatus.BAD_REQUEST);
 			}
 
 			throw new HttpException(

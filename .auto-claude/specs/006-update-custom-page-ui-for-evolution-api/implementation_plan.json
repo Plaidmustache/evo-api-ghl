@@ -1,0 +1,53 @@
+{
+  "feature": "update-custom-page-ui-for-evolution-api",
+  "spec_name": "update-custom-page-ui-for-evolution-api",
+  "workflow_type": "simple",
+  "total_phases": 1,
+  "recommended_workers": 1,
+  "phases": [
+    {
+      "phase": 1,
+      "name": "Implementation",
+      "description": "Update custom page HTML for Evolution API branding and form fields",
+      "depends_on": [],
+      "subtasks": [
+        {
+          "id": "subtask-1-1",
+          "description": "Rebrand UI from GREEN-API to Evolution API: update title, header, colors (#3B9702 → #0d9488), replace logo SVG with WhatsApp icon",
+          "service": "main",
+          "status": "pending",
+          "files_to_create": [],
+          "files_to_modify": ["src/custom-page/custom-page.controller.ts"],
+          "patterns_from": [],
+          "verification": {
+            "type": "manual",
+            "run": "Search file for GREEN-API and #3B9702 - should find zero matches"
+          }
+        },
+        {
+          "id": "subtask-1-2",
+          "description": "Update form fields and payload: remove instanceId/apiToken inputs, add instanceName/evolutionApiUrl/evolutionApiKey inputs, update form submission payload, update instance card display, remove openGreenApiConsole function",
+          "service": "main",
+          "status": "pending",
+          "files_to_create": [],
+          "files_to_modify": ["src/custom-page/custom-page.controller.ts"],
+          "patterns_from": [],
+          "verification": {
+            "type": "manual",
+            "run": "Review form fields and payload structure in generateCustomPageHTML method"
+          }
+        }
+      ]
+    }
+  ],
+  "qa_signoff": {
+    "status": "pending",
+    "tests_passed": "",
+    "issues": ""
+  },
+  "metadata": {
+    "created_at": "2025-01-11T00:00:00Z",
+    "complexity": "simple",
+    "estimated_sessions": 1
+  }
+}

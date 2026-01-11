@@ -27,8 +27,9 @@
             "command": "grep -r '@green-api/greenapi-integration' src/ghl/ghl.service.ts || echo 'No GREEN-API imports found'",
             "expected": "No GREEN-API imports found"
           },
-          "status": "pending",
-          "notes": "Remove imports: BaseAdapter, GreenApiWebhook, WebhookType, IntegrationError, NotFoundError, Settings, StateInstanceWebhook, WaSettings, SendResponse, SendInteractiveButtonsReply, formatPhoneNumber, GreenApiLogger. Also remove 'extends BaseAdapter<...>' and super() call."
+          "status": "completed",
+          "notes": "Successfully removed all GREEN-API package imports (@green-api/greenapi-integration and dist/types), removed BaseAdapter extension from GhlService class, and removed super() call from constructor. Verification passed - no GREEN-API imports remain in ghl.service.ts.",
+          "updated_at": "2026-01-11T16:14:32.665731+00:00"
         },
         {
           "id": "subtask-1-2",
@@ -442,5 +443,6 @@
   "created_at": "2026-01-11T14:25:59.106Z",
   "updated_at": "2026-01-11T16:13:03.912Z",
   "status": "in_progress",
-  "planStatus": "in_progress"
+  "planStatus": "in_progress",
+  "last_updated": "2026-01-11T16:14:32.665743+00:00"
 }

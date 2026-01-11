@@ -13,6 +13,8 @@ import {
 	GhlPlatformMessage,
 	MessageStatusPayload, WorkflowActionData, WorkflowActionResult,
 } from "../types";
+import { EvolutionApiClient } from "../evolution/evolution-api.client";
+import type { EvolutionWebhook } from "./types/evolution-webhook.types";
 
 @Injectable()
 export class GhlService {

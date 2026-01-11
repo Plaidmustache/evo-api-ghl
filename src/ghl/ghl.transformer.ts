@@ -141,7 +141,9 @@ export class GhlTransformer {
 
 	/**
 	 * Transforms GHL webhook to Evolution API message format
-	 * TODO: Will be fully implemented in phase 4 (subtask-4-1, subtask-4-2)
+	 * @param ghlWebhook - The incoming GHL webhook DTO
+	 * @returns Evolution API text message format { number, text } or media message format { number, mediatype, media, caption }
+	 * @throws Error if webhook type is not SMS or has no content
 	 */
 	toEvolutionMessage(ghlWebhook: GhlWebhookDto): { number: string; text: string } | { number: string; mediatype: string; media: string; caption?: string } {
 		this.logger.debug(`Transforming GHL Webhook to Evolution API Message: ${JSON.stringify(ghlWebhook)}`);

@@ -383,22 +383,34 @@ export class GhlService {
 		if (!instance.user) throw new IntegrationError("Instance not linked to User.", "DATA_ERROR");
 		if (instance.stateInstance !== "authorized") throw new IntegrationError("Instance is not authorized", "INSTANCE_NOT_AUTHORIZED");
 
-		const greenApiClient = this.createGreenApiClient(instance);
+		// TODO: Phase 4 (subtask-4-1) will implement Evolution API client for message sending
+		// Get Evolution API credentials from instance settings
+		const settings = instance.settings as { evolutionApiUrl?: string; evolutionApiKey?: string; instanceName?: string } | null;
+		if (!settings?.evolutionApiUrl || !settings?.evolutionApiKey || !settings?.instanceName) {
+			throw new IntegrationError("Instance missing Evolution API credentials", "CONFIGURATION_ERROR", 500);
+		}
+
+		const evolutionClient = new EvolutionApiClient(settings.evolutionApiUrl, settings.evolutionApiKey);
 		const transformedMessage = this.ghlTransformer.toGreenApiMessage(ghlWebhook);
 
-		this.logger.log(`Transformed GHL message to Green API format for instance ${idInstance}`);
-		this.logger.debug(`Green API Message: ${JSON.stringify(transformedMessage)}`);
+		this.logger.log(`Transformed GHL message to Evolution API format for instance ${idInstance}`);
+		this.logger.debug(`Evolution API Message: ${JSON.stringify(transformedMessage)}`);
 
 		switch (transformedMessage.type) {
 			case "text":
-				gaResponse = await greenApiClient.sendMessage(transformedMessage);
+				gaResponse = await evolutionClient.sendText(settings.instanceName, ghlWebhook.phone, transformedMessage.message);
 				break;
 			case "url-file":
-				gaResponse = await greenApiClient.sendFileByUrl(transformedMessage);
+				gaResponse = await evolutionClient.sendMedia(settings.instanceName, ghlWebhook.phone, {
+					mediatype: "document",
+					media: transformedMessage.file.url,
+					fileName: transformedMessage.file.fileName,
+					caption: transformedMessage.caption,
+				});
 				break;
 			default:
-				this.logger.error(`Unsupported Green API message type from GHL transform: ${transformedMessage.type}`);
-				throw new IntegrationError(`Invalid Green API message type: ${transformedMessage.type}`, "INVALID_MESSAGE_TYPE", 500);
+				this.logger.error(`Unsupported message type from GHL transform: ${transformedMessage.type}`);
+				throw new IntegrationError(`Invalid message type: ${transformedMessage.type}`, "INVALID_MESSAGE_TYPE", 500);
 		}
 		await this.updateGhlMessageStatus(locationId, messageId, "delivered");
 		return gaResponse;
@@ -619,79 +631,73 @@ export class GhlService {
 
 		const chatId = formatPhoneNumber(contactPhone);
 		const cleanPhone = chatId.replace("@c.us", "");
-		const greenApiClient = this.createGreenApiClient(instance);
 
-		let sendResponse: SendResponse;
+		// Get Evolution API credentials from instance settings
+		const settings = instance.settings as { evolutionApiUrl?: string; evolutionApiKey?: string; instanceName?: string } | null;
+		if (!settings?.evolutionApiUrl || !settings?.evolutionApiKey || !settings?.instanceName) {
+			throw new BadRequestException("Instance missing Evolution API credentials");
+		}
+
+		const evolutionClient = new EvolutionApiClient(settings.evolutionApiUrl, settings.evolutionApiKey);
+
+		let sendResponse: { key: { id: string } };
 		let ghlMessageContent: string;
 		let ghlAttachments: string[] | undefined;
 
 		switch (actionType) {
 			case "message":
 				if (!data.message) throw new Error("Message is required");
-				sendResponse = await greenApiClient.sendMessage({
-					chatId,
-					message: data.message,
-					linkPreview: true,
-				});
+				sendResponse = await evolutionClient.sendText(settings.instanceName, cleanPhone, data.message);
 				ghlMessageContent = data.message;
-				this.logger.log(`Text message sent via GREEN-API`, {
+				this.logger.log(`Text message sent via Evolution API`, {
 					instanceId: data.instanceId,
-					messageId: sendResponse.idMessage,
+					messageId: sendResponse.key?.id,
 				});
 				break;
 
 			case "file":
 				if (!data.url || !data.fileName) throw new Error("URL and fileName are required for file messages");
-				sendResponse = await greenApiClient.sendFileByUrl({
-					chatId,
-					file: {url: data.url, fileName: data.fileName},
-					caption: data.caption || undefined,
+				sendResponse = await evolutionClient.sendMedia(settings.instanceName, cleanPhone, {
+					mediatype: "document",
+					media: data.url,
+					fileName: data.fileName,
+					caption: data.caption,
 				});
 				ghlMessageContent = data.caption ? data.caption : `[File: ${data.fileName}]`;
 				ghlAttachments = [data.url];
-				this.logger.log(`File sent via GREEN-API`, {
+				this.logger.log(`File sent via Evolution API`, {
 					instanceId: data.instanceId,
-					messageId: sendResponse.idMessage,
+					messageId: sendResponse.key?.id,
 					fileName: data.fileName,
 				});
 				break;
 
 			case "interactive-buttons":
+				// Evolution API doesn't support interactive buttons - convert to text message with button options
 				if (!data.body) throw new Error("Body is required for interactive buttons");
 				const buttons = this.buildInteractiveButtons(data);
 				if (buttons.length === 0) throw new Error("At least one button is required");
 
-				sendResponse = await greenApiClient.sendInteractiveButtons({
-					chatId,
-					header: data.header,
-					body: data.body,
-					footer: data.footer,
-					buttons,
-				});
 				ghlMessageContent = this.formatInteractiveButtonsForGhl(data, buttons);
-				this.logger.log(`Interactive buttons sent via GREEN-API`, {
+				sendResponse = await evolutionClient.sendText(settings.instanceName, cleanPhone, ghlMessageContent);
+				this.logger.log(`Interactive buttons sent as text via Evolution API`, {
 					instanceId: data.instanceId,
-					messageId: sendResponse.idMessage,
+					messageId: sendResponse.key?.id,
 					buttonCount: buttons.length,
 				});
 				break;
 
 			case "reply-buttons":
+				// Evolution API doesn't support reply buttons - convert to text message with button options
 				if (!data.body) throw new Error("Body is required for reply buttons");
 				const replyButtons = this.buildReplyButtons(data);
 				if (replyButtons.length === 0) throw new Error("At least one button is required");
 
-				sendResponse = await greenApiClient.sendInteractiveButtonsReply({
-					chatId,
-					header: data.header,
-					body: data.body,
-					footer: data.footer,
-					buttons: replyButtons,
-				});
 				ghlMessageContent = this.formatReplyButtonsForGhl(data, replyButtons);
-				this.logger.log(`Reply buttons sent via GREEN-API`, {
+				sendResponse = await evolutionClient.sendText(settings.instanceName, cleanPhone, ghlMessageContent);
+				this.logger.log(`Reply buttons sent as text via Evolution API`, {
 					instanceId: data.instanceId,
-					messageId: sendResponse.idMessage,
+					messageId: sendResponse.key?.id,
 					buttonCount: replyButtons.length,
 				});
 				break;
@@ -705,7 +711,7 @@ export class GhlService {
 			this.logger.warn(`Could not find/create GHL contact for phone ${cleanPhone}`);
 			return {
 				success: true,
-				messageId: sendResponse.idMessage,
+				messageId: sendResponse.key?.id,
 				warning: `${actionType} sent but contact not found in GHL`,
 			};
 		}
@@ -721,7 +727,7 @@ export class GhlService {
 
 		return {
 			success: true,
-			messageId: sendResponse.idMessage,
+			messageId: sendResponse.key?.id,
 			contactId: ghlContact.id,
 		};
 	}

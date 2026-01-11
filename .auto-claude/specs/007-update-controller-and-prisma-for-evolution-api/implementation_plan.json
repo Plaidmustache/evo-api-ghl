@@ -268,7 +268,9 @@
             "command": "grep 'instanceName' src/ghl/ghl.controller.ts | wc -l",
             "expected": "Multiple occurrences"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Updated getInstances() method to include instanceName and evolutionApiUrl in the response mapping. Verification passed with 2 occurrences of instanceName in the file.",
+          "updated_at": "2026-01-11T16:45:57.965975+00:00"
         },
         {
           "id": "subtask-2-4",
@@ -295,7 +297,9 @@
             "command": "grep 'createEvolutionInstanceForUser' src/ghl/ghl.controller.ts",
             "expected": "Match found"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Updated createInstance() method: changed service call from createGreenApiInstanceForUser to createEvolutionInstanceForUser, updated method parameters to use instanceName/evolutionApiUrl/evolutionApiKey, removed BigInt conversion, updated response to return instanceName instead of idInstance, updated error messages from GREEN-API to Evolution API. Verification passed.",
+          "updated_at": "2026-01-11T16:47:24.397850+00:00"
         },
         {
           "id": "subtask-2-5",
@@ -511,5 +515,5 @@
   "created_at": "2026-01-11T14:27:12.159Z",
   "updated_at": "2026-01-11T19:00:00.000Z",
   "status": "planned",
-  "last_updated": "2026-01-11T16:45:13.848668+00:00"
+  "last_updated": "2026-01-11T16:47:24.397860+00:00"
 }

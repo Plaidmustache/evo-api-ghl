@@ -83,11 +83,35 @@
         }
       ],
       "status": "completed"
+    },
+    "subtask-2-3": {
+      "attempts": [
+        {
+          "session": 8,
+          "timestamp": "2026-01-11T17:46:05.417902",
+          "approach": "Implemented: Update getInstances() method to return instanceName and evolutionApiUrl",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
+    },
+    "subtask-2-4": {
+      "attempts": [
+        {
+          "session": 9,
+          "timestamp": "2026-01-11T17:47:40.486710",
+          "approach": "Implemented: Update createInstance() method to use new DTO and service method",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
     }
   },
   "stuck_subtasks": [],
   "metadata": {
     "created_at": "2026-01-11T17:38:56.328261",
-    "last_updated": "2026-01-11T17:45:23.270913"
+    "last_updated": "2026-01-11T17:47:40.486733"
   }
 }

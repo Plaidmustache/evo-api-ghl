@@ -206,6 +206,33 @@ export class EvolutionApiClient {
 	}
 
 	/**
+	 * Fetches all WhatsApp instances from the Evolution API server.
+	 * @returns Array of all registered instances with their details
+	 * @throws HttpException if the API request fails
+	 */
+	async fetchInstances(): Promise<FetchInstancesResponse> {
+		this.logger.log("Fetching all instances from Evolution API");
+
+		try {
+			const { data } = await this.httpClient.get<FetchInstancesResponse>(
+				"/instance/fetchInstances",
+			);
+
+			this.logger.log(
+				`Successfully fetched ${data.length} instance(s) from Evolution API`,
+			);
+
+			return data;
+		} catch (error) {
+			// Error is already handled by the interceptor, just re-throw
+			this.logger.error(
+				`Failed to fetch instances from Evolution API: ${error.message}`,
+			);
+			throw error;
+		}
+	}
+
+	/**
 	 * Configures the webhook URL and events for a WhatsApp instance.
 	 * @param instance - The Evolution API instance name
 	 * @param request - The webhook configuration containing URL and event types

@@ -1,0 +1,34 @@
+{
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
+  },
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Read(./**)",
+      "Write(./**)",
+      "Edit(./**)",
+      "Glob(./**)",
+      "Grep(./**)",
+      "Read(/Users/malone/evo-api-ghl/.worktrees/008-update-dependencies-and-documentation/**)",
+      "Write(/Users/malone/evo-api-ghl/.worktrees/008-update-dependencies-and-documentation/**)",
+      "Edit(/Users/malone/evo-api-ghl/.worktrees/008-update-dependencies-and-documentation/**)",
+      "Glob(/Users/malone/evo-api-ghl/.worktrees/008-update-dependencies-and-documentation/**)",
+      "Grep(/Users/malone/evo-api-ghl/.worktrees/008-update-dependencies-and-documentation/**)",
+      "Read(/Users/malone/evo-api-ghl/.worktrees/008-update-dependencies-and-documentation/.auto-claude/specs/008-update-dependencies-and-documentation/**)",
+      "Write(/Users/malone/evo-api-ghl/.worktrees/008-update-dependencies-and-documentation/.auto-claude/specs/008-update-dependencies-and-documentation/**)",
+      "Edit(/Users/malone/evo-api-ghl/.worktrees/008-update-dependencies-and-documentation/.auto-claude/specs/008-update-dependencies-and-documentation/**)",
+      "Bash(*)",
+      "WebFetch(*)",
+      "WebSearch(*)",
+      "mcp__context7__resolve-library-id(*)",
+      "mcp__context7__get-library-docs(*)",
+      "mcp__graphiti-memory__search_nodes(*)",
+      "mcp__graphiti-memory__search_facts(*)",
+      "mcp__graphiti-memory__add_episode(*)",
+      "mcp__graphiti-memory__get_episodes(*)",
+      "mcp__graphiti-memory__get_entity_edge(*)"
+    ]
+  }
+}

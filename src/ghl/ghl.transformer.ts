@@ -1,21 +1,79 @@
-import { Injectable } from "@nestjs/common";
-import {
-	MessageTransformer,
-	Message,
-	GreenApiWebhook,
-	formatPhoneNumber,
-	GreenApiLogger,
-	extractPhoneNumberFromVCard,
-} from "@green-api/greenapi-integration";
+import { Injectable, Logger } from "@nestjs/common";
 import { GhlWebhookDto } from "./dto/ghl-webhook.dto";
 import { GhlPlatformMessage } from "../types";
+
+/**
+ * Local interface for message transformation (replaces GREEN-API MessageTransformer)
+ */
+interface MessageTransformer<TInput, TOutput> {
+	toEvolutionMessage(input: TInput): Message;
+	toPlatformMessage(webhook: GreenApiWebhookLegacy): TOutput;
+}
+
+/**
+ * Local message type for Evolution API
+ */
+interface Message {
+	type: "text" | "url-file";
+	chatId: string;
+	message?: string;
+	file?: {
+		url: string;
+		fileName: string;
+	};
+	caption?: string;
+}
+
+/**
+ * Legacy GREEN-API webhook interface for backwards compatibility
+ * This is kept for existing toPlatformMessage() functionality
+ */
+interface GreenApiWebhookLegacy {
+	typeWebhook: string;
+	timestamp: number;
+	senderData?: {
+		chatId?: string;
+		senderName?: string;
+		senderContactName?: string;
+		sender: string;
+	};
+	messageData?: any;
+	from?: string;
+	status?: string;
+}
 
 @Injectable()
 export class GhlTransformer
 	implements MessageTransformer<GhlWebhookDto, GhlPlatformMessage> {
-	private readonly logger = GreenApiLogger.getInstance(GhlTransformer.name);
+	private readonly logger = new Logger(GhlTransformer.name);
 
-	toPlatformMessage(webhook: GreenApiWebhook): GhlPlatformMessage {
+	/**
+	 * Formats a phone number for WhatsApp chat ID
+	 * @param phone The phone number to format
+	 * @param type 'private' for individual chats, 'group' for group chats
+	 * @returns Formatted WhatsApp chat ID
+	 */
+	private formatPhoneNumber(phone: string, type: 'private' | 'group'): string {
+		const cleaned = phone.replace(/[^0-9]/g, '');
+		return type === 'group' ? `${cleaned}@g.us` : `${cleaned}@c.us`;
+	}
+
+	/**
+	 * Extracts phone number from a vCard string
+	 * @param vcard The vCard string to parse
+	 * @returns The extracted phone number or null if not found
+	 */
+	private extractPhoneNumberFromVCard(vcard: string): string | null {
+		if (!vcard) return null;
+		// Match TEL lines in vCard format, e.g., TEL;type=CELL:+1234567890
+		const telMatch = vcard.match(/TEL[^:]*:([+\d\s-]+)/i);
+		if (telMatch && telMatch[1]) {
+			return telMatch[1].replace(/[\s-]/g, '').trim();
+		}
+		return null;
+	}
+
+	toPlatformMessage(webhook: GreenApiWebhookLegacy): GhlPlatformMessage {
 		this.logger.debug(`Transforming Green API webhook to GHL Platform Message: ${JSON.stringify(webhook)}`);
 		let messageText = "";
 		const attachments: GhlPlatformMessage["attachments"] = [];
@@ -69,7 +127,7 @@ export class GhlTransformer
 					break;
 				case "contactMessage":
 					const contact = msgData.contactMessageData;
-					const phone = extractPhoneNumberFromVCard(contact.vcard);
+					const phone = this.extractPhoneNumberFromVCard(contact.vcard);
 					messageText = [
 						"👤 User shared a contact:",
 						contact.displayName && `Name: ${contact.displayName}`,
@@ -80,7 +138,7 @@ export class GhlTransformer
 					const contactsArray = msgData.messageData.contacts;
 					const contactsText = contactsArray
 						.map(c => {
-							const p = extractPhoneNumberFromVCard(c.vcard);
+							const p = this.extractPhoneNumberFromVCard(c.vcard);
 							return `👤 ${c.displayName}${p ? ` (${p})` : ""}`;
 						})
 						.join("\n");
@@ -255,7 +313,7 @@ export class GhlTransformer
 
 		if (ghlWebhook.type === "SMS" && ghlWebhook.phone) {
 			const isGroupChatId = ghlWebhook.phone.length > 16;
-			const chatId = formatPhoneNumber(ghlWebhook.phone, isGroupChatId ? "group" : "private");
+			const chatId = this.formatPhoneNumber(ghlWebhook.phone, isGroupChatId ? "group" : "private");
 
 			if (ghlWebhook.attachments && ghlWebhook.attachments.length > 0) {
 				const attachmentUrl = ghlWebhook.attachments[0];

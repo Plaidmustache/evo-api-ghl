@@ -101,11 +101,11 @@ export class WebhooksController {
 		try {
 			if (!ghlWebhook.userId) {
 				if (ghlWebhook.message && ghlWebhook.message.endsWith("\f\f\f\f\f")) {
-					this.logger.info(`Skipping workflow message with marker for location ${locationId}`);
+					this.logger.log(`Skipping workflow message with marker for location ${locationId}`);
 					res.status(HttpStatus.OK).send();
 					return;
 				}
-				this.logger.info(`Processing message without userId (likely bot message) for location ${locationId}`);
+				this.logger.log(`Processing message without userId (likely bot message) for location ${locationId}`);
 			}
 			const conversationProviderId = ghlWebhook.conversationProviderId === this.configService.get("GHL_CONVERSATION_PROVIDER_ID");
 

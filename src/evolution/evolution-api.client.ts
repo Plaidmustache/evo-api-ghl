@@ -141,4 +141,39 @@ export class EvolutionApiClient {
 			throw error;
 		}
 	}
+
+	/**
+	 * Sends a media message (image, video, audio, or document) to a WhatsApp number via Evolution API.
+	 * @param instance - The Evolution API instance name
+	 * @param request - The send media request containing number, mediatype, media URL/base64, and optional caption/filename
+	 * @returns The send message response with message details
+	 * @throws HttpException if the API request fails
+	 */
+	async sendMedia(
+		instance: string,
+		request: SendMediaRequest,
+	): Promise<SendMessageResponse> {
+		this.logger.log(
+			`Sending ${request.mediatype} message via instance ${instance} to ${request.number}`,
+		);
+
+		try {
+			const { data } = await this.httpClient.post<SendMessageResponse>(
+				`/message/sendMedia/${instance}`,
+				request,
+			);
+
+			this.logger.log(
+				`Media message (${request.mediatype}) sent successfully via instance ${instance}. Message ID: ${data.key?.id}`,
+			);
+
+			return data;
+		} catch (error) {
+			// Error is already handled by the interceptor, just re-throw
+			this.logger.error(
+				`Failed to send ${request.mediatype} message via instance ${instance} to ${request.number}: ${error.message}`,
+			);
+			throw error;
+		}
+	}
 }

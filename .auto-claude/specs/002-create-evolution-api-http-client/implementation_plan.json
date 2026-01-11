@@ -68,7 +68,9 @@
             "command": "cd /Users/malone/evo-api-ghl && grep -q 'sendText' src/evolution/evolution-api.client.ts && echo 'sendText method exists'",
             "expected": "sendText method exists"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Implemented sendText method that makes POST request to /message/sendText/{instance}. Method accepts instance name and SendTextRequest (number, text), returns SendMessageResponse. Includes proper logging for success/failure and error handling via interceptors.",
+          "updated_at": "2026-01-11T14:50:39.021896+00:00"
         },
         {
           "id": "subtask-1-4",
@@ -341,5 +343,5 @@
     }
   },
   "qa_signoff": null,
-  "last_updated": "2026-01-11T14:49:34.363426+00:00"
+  "last_updated": "2026-01-11T14:50:39.021919+00:00"
 }

@@ -128,6 +128,7 @@ export class WebhooksController {
 			contactId: ghlContact.id,
 			locationId: instance.userId,
 			message: messageContent,
+			direction: "inbound" as const,
 			attachments: [] as { url: string }[],
 		};
 

@@ -19,8 +19,9 @@ import { GhlContextGuard } from "./guards/ghl-context.guard";
 
 interface CreateInstanceDto {
 	locationId: string;
-	instanceId: string;
-	apiToken: string;
+	instanceName: string;
+	evolutionApiUrl: string;
+	evolutionApiKey: string;
 	name?: string;
 }
 

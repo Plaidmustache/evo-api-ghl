@@ -214,3 +214,26 @@ export interface GhlContactUpsertResponse {
 	contact: GhlContact;
 	traceId: string;
 }
+
+// Evolution API Types
+export type EvolutionConnectionState = 'open' | 'close' | 'connecting';
+
+export interface EvolutionMessageKey {
+	remoteJid: string;
+	fromMe: boolean;
+	id: string;
+}
+
+export interface EvolutionMessageData {
+	key: EvolutionMessageKey;
+	pushName: string;
+	message: { conversation?: string; [key: string]: any };
+	messageType: string;
+	messageTimestamp: number;
+}
+
+export interface EvolutionWebhookPayload {
+	event: 'messages.upsert' | 'connection.update' | string;
+	instance: string;
+	data: EvolutionMessageData | { state: EvolutionConnectionState };
+}

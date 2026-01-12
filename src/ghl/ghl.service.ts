@@ -397,21 +397,29 @@ export class GhlService extends BaseAdapter<
 		if (instance.stateInstance !== "authorized") throw new IntegrationError("Instance is not authorized", "INSTANCE_NOT_AUTHORIZED");
 
 		const greenApiClient = this.createGreenApiClient(instance);
-		const transformedMessage = this.ghlTransformer.toGreenApiMessage(ghlWebhook);
+		const transformedMessage = this.ghlTransformer.toEvolutionMessage(ghlWebhook);
 
-		this.gaLogger.log(`Transformed GHL message to Green API format for instance ${idInstance}`);
-		this.gaLogger.debug(`Green API Message: ${JSON.stringify(transformedMessage)}`);
+		this.gaLogger.log(`Transformed GHL message to Evolution API format for instance ${idInstance}`);
+		this.gaLogger.debug(`Evolution API Message: ${JSON.stringify(transformedMessage)}`);
 
-		switch (transformedMessage.type) {
-			case "text":
-				gaResponse = await greenApiClient.sendMessage(transformedMessage);
-				break;
-			case "url-file":
-				gaResponse = await greenApiClient.sendFileByUrl(transformedMessage);
-				break;
-			default:
-				this.gaLogger.error(`Unsupported Green API message type from GHL transform: ${transformedMessage.type}`);
-				throw new IntegrationError(`Invalid Green API message type: ${transformedMessage.type}`, "INVALID_MESSAGE_TYPE", 500);
+		// Check message type based on property existence (text vs mediatype)
+		if ("text" in transformedMessage) {
+			gaResponse = await greenApiClient.sendMessage({
+				chatId: `${transformedMessage.number}@c.us`,
+				message: transformedMessage.text,
+			});
+		} else if ("mediatype" in transformedMessage) {
+			gaResponse = await greenApiClient.sendFileByUrl({
+				chatId: `${transformedMessage.number}@c.us`,
+				file: {
+					url: transformedMessage.media,
+					fileName: transformedMessage.media.split("/").pop() || "file",
+				},
+				caption: transformedMessage.caption,
+			});
+		} else {
+			this.gaLogger.error(`Unsupported Evolution API message format from GHL transform`);
+			throw new IntegrationError(`Invalid Evolution API message format`, "INVALID_MESSAGE_TYPE", 500);
 		}
 		await this.updateGhlMessageStatus(locationId, messageId, "delivered");
 		return gaResponse;

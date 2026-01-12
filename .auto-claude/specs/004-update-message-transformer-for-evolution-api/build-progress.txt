@@ -1,0 +1,137 @@
+=== AUTO-BUILD PROGRESS ===
+
+Project: Update Message Transformer for Evolution API
+Spec: 004
+Workspace: /Users/malone/evo-api-ghl
+Started: 2026-01-11
+
+Workflow Type: feature
+Rationale: Focused feature update modifying a single transformation module to support Evolution API format while maintaining backward compatibility with GHL integration. Changes are well-scoped with clear input/output contracts.
+
+Session 1 (Planner):
+- Created implementation_plan.json
+- Phases: 5
+- Total subtasks: 10
+- Created init.sh
+- Updated context.json
+
+=== PHASE SUMMARY ===
+
+Phase 1: Evolution API Webhook Types
+  - Subtasks: 1
+  - Depends on: None
+  - Create TypeScript interfaces for Evolution API webhook payloads
+
+Phase 2: Helper Methods Implementation
+  - Subtasks: 2
+  - Depends on: Phase 1
+  - Implement extractPhoneFromJid() and isGroupMessage() utilities
+
+Phase 3: Inbound Message Transformation
+  - Subtasks: 3
+  - Depends on: Phase 1, Phase 2
+  - Update toPlatformMessage() for Evolution API webhook format
+
+Phase 4: Outbound Message Transformation
+  - Subtasks: 2
+  - Depends on: Phase 1
+  - Rename toGreenApiMessage() to toEvolutionMessage(), update output format
+
+Phase 5: Cleanup and Integration
+  - Subtasks: 2
+  - Depends on: Phase 3, Phase 4
+  - Remove GREEN-API dependencies, update ghl.service.ts, verify build
+
+=== SERVICES INVOLVED ===
+
+- main (NestJS Backend)
+  - Port: 3000
+  - Command: npm run start:dev
+  - Primary file: src/ghl/ghl.transformer.ts
+
+=== FILES TO MODIFY ===
+
+- src/ghl/ghl.transformer.ts (complete refactor)
+- src/ghl/ghl.service.ts (method rename: toGreenApiMessage -> toEvolutionMessage)
+
+=== FILES TO CREATE ===
+
+- src/ghl/types/evolution-webhook.types.ts (Evolution API webhook interfaces)
+
+=== PARALLELISM ANALYSIS ===
+
+- Max parallel phases: 2
+- Recommended workers: 1 (sequential recommended for single-file focus)
+- Parallel groups:
+  - Phase 2 (helpers) and Phase 4 (outbound) can run in parallel
+    Reason: Both depend on Phase 1 but modify different code sections
+
+=== KEY CONSTRAINTS ===
+
+1. GhlPlatformMessage output format must remain UNCHANGED
+2. GhlWebhookDto input format must remain UNCHANGED
+3. All 6 message types must be handled:
+   - conversation
+   - extendedTextMessage
+   - imageMessage
+   - videoMessage
+   - audioMessage
+   - documentMessage
+4. GREEN-API SDK imports must be removed
+5. TypeScript must compile without errors
+
+=== VERIFICATION STRATEGY ===
+
+Risk Level: medium
+Test Types Required: unit, integration
+
+Verification Steps:
+1. TypeScript Build - npm run build
+2. GREEN-API Imports Removed - grep check
+3. Method Renamed - grep toEvolutionMessage
+4. All Message Types Handled - 6 case statements
+5. Helper Methods Exist - extractPhoneFromJid, isGroupMessage
+
+=== STARTUP COMMAND ===
+
+To continue building this spec, run:
+
+  source auto-claude/.venv/bin/activate && python auto-claude/run.py --spec 004 --parallel 1
+
+=== END SESSION 1 ===
+
+=== IMPLEMENTATION COMPLETE ===
+
+Build Status: COMPLETE
+Date: 2026-01-11
+Total Subtasks: 11/11 (100%)
+
+Commits Made:
+1. 0bfb077 - subtask-1-1: Evolution API webhook type definitions
+2. 1a0184b - subtask-2-1: extractPhoneFromJid() helper method
+3. 5eae442 - subtask-2-2: isGroupMessage() helper method
+4. a94d1fa - subtask-3-1: Refactored toPlatformMessage() for Evolution API
+5. (subtask-3-2, 3-3 completed in 3-1)
+6. (subtask-4-1 completed in 3-1)
+7. fd7417c - subtask-4-2: Evolution API message format output
+8. (subtask-5-1 no changes needed - already using NestJS logger)
+9. 33ceb1d - subtask-5-2: Updated ghl.service.ts to use toEvolutionMessage()
+10. subtask-5-3: Verification complete (no code changes)
+
+Final Verification Results:
+✓ No @green-api/greenapi-integration imports in ghl.transformer.ts
+✓ toEvolutionMessage method exists in transformer and service
+✓ toGreenApiMessage method successfully removed
+✓ All 6 Evolution API message types handled
+✓ Helper methods extractPhoneFromJid() and isGroupMessage() exist
+✓ No console.log debugging statements in modified files
+✓ Type definitions properly structured with type guards
+
+Files Created:
+- src/ghl/types/evolution-webhook.types.ts (296 lines)
+
+Files Modified:
+- src/ghl/ghl.transformer.ts (191 lines)
+- src/ghl/ghl.service.ts (updated toEvolutionMessage() call)
+
+=== READY FOR QA ===

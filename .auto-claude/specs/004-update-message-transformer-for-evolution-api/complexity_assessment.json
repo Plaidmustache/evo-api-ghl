@@ -1,0 +1,69 @@
+{
+  "complexity": "standard",
+  "workflow_type": "refactor",
+  "confidence": 0.90,
+  "reasoning": "This is a well-defined refactor task replacing Green API message format with Evolution API format. Changes are contained to a single transformer file with clear input/output requirements. The Evolution API webhook structure is fully documented in the task description, eliminating research needs.",
+
+  "analysis": {
+    "scope": {
+      "estimated_files": 2,
+      "estimated_services": 1,
+      "is_cross_cutting": false,
+      "notes": "Primary changes in ghl.transformer.ts. Minor update in ghl.service.ts for method rename (toGreenApiMessage → toEvolutionMessage). GHL platform message format stays unchanged."
+    },
+    "integrations": {
+      "external_services": ["Evolution API"],
+      "new_dependencies": [],
+      "research_needed": false,
+      "notes": "Evolution API webhook format is fully documented in requirements. No new npm packages needed - we're removing @green-api/greenapi-integration dependency and implementing native parsing."
+    },
+    "infrastructure": {
+      "docker_changes": false,
+      "database_changes": false,
+      "config_changes": false,
+      "notes": "No infrastructure changes required. This is purely a code transformation layer refactor."
+    },
+    "knowledge": {
+      "patterns_exist": true,
+      "research_required": false,
+      "unfamiliar_tech": [],
+      "notes": "Existing Green API transformer provides clear pattern. Evolution API format documented in task requirements. Same NestJS/TypeScript patterns."
+    },
+    "risk": {
+      "level": "medium",
+      "concerns": [
+        "Message transformation is core functionality",
+        "Must handle all 6 message types (conversation, extendedText, image, video, audio, document)",
+        "Phone number extraction from JID format must be accurate"
+      ],
+      "notes": "Changes are well-contained to transformer layer. GHL output format unchanged minimizes risk. Clear test scenarios available."
+    }
+  },
+
+  "recommended_phases": [
+    "discovery",
+    "requirements",
+    "context",
+    "spec_writing",
+    "planning",
+    "validation"
+  ],
+
+  "flags": {
+    "needs_research": false,
+    "needs_self_critique": false,
+    "needs_infrastructure_setup": false
+  },
+
+  "validation_recommendations": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "minimal_mode": false,
+    "test_types_required": ["unit", "integration"],
+    "security_scan_required": false,
+    "staging_deployment_required": false,
+    "reasoning": "Message transformation is core integration logic requiring unit tests for each message type (6 types) and integration tests for webhook handling. No auth/security code touched."
+  },
+
+  "created_at": "2025-01-11T17:45:00Z"
+}

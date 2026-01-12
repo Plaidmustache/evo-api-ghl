@@ -1,0 +1,10 @@
+{
+  "discovered_files": {
+    "src/ghl/types/evolution-webhook.types.ts": {
+      "description": "Evolution API webhook types for inbound message transformation. Includes EvolutionWebhook (top-level), EvolutionMessageData, EvolutionMessageKey, and content types for all 6 message types. Has type guards for safe message type checking.",
+      "category": "types",
+      "discovered_at": "2026-01-11T15:58:55.248027+00:00"
+    }
+  },
+  "last_updated": "2026-01-11T15:58:55.248052+00:00"
+}

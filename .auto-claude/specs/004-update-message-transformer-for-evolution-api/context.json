@@ -1,0 +1,80 @@
+{
+  "task_description": "Update the message transformer to convert between Evolution API and GHL message formats, replacing GREEN-API integration.",
+  "scoped_services": ["main"],
+  "files_to_modify": {
+    "main": [
+      "src/ghl/ghl.transformer.ts",
+      "src/ghl/ghl.service.ts"
+    ]
+  },
+  "files_to_create": {
+    "main": [
+      "src/ghl/types/evolution-webhook.types.ts"
+    ]
+  },
+  "files_to_reference": [
+    "CLAUDE.md",
+    "src/types.ts",
+    "src/ghl/dto/ghl-webhook.dto.ts",
+    ".worktrees/002-create-evolution-api-http-client/src/evolution/evolution-api.types.ts"
+  ],
+  "patterns": {
+    "transformer_pattern": "Injectable class with @Injectable() decorator, implements MessageTransformer interface pattern",
+    "logger_pattern": "NestJS Logger class for logging (replacing GreenApiLogger)",
+    "message_type_handling": "Switch statement for different message types with case statements",
+    "phone_format": "Evolution API uses JID format (e.g., '5511999999999@s.whatsapp.net' or '5511999999999@g.us')"
+  },
+  "existing_implementations": {
+    "description": "Found existing GREEN-API transformer in src/ghl/ghl.transformer.ts with 288 lines handling multiple message types via switch statement",
+    "relevant_files": [
+      "src/ghl/ghl.transformer.ts",
+      "src/ghl/ghl.service.ts"
+    ],
+    "dependencies_to_remove": [
+      "@green-api/greenapi-integration"
+    ]
+  },
+  "key_interfaces": {
+    "GhlPlatformMessage": {
+      "file": "src/types.ts",
+      "immutable": true,
+      "fields": ["contactId", "locationId", "message", "direction", "conversationProviderId", "attachments", "timestamp"]
+    },
+    "GhlWebhookDto": {
+      "file": "src/ghl/dto/ghl-webhook.dto.ts",
+      "immutable": true,
+      "fields": ["contactId", "locationId", "messageId", "type", "phone", "message", "attachments"]
+    },
+    "SendTextRequest": {
+      "file": ".worktrees/002-create-evolution-api-http-client/src/evolution/evolution-api.types.ts",
+      "fields": ["number", "text"]
+    },
+    "SendMediaRequest": {
+      "file": ".worktrees/002-create-evolution-api-http-client/src/evolution/evolution-api.types.ts",
+      "fields": ["number", "mediatype", "media", "caption", "fileName"]
+    }
+  },
+  "evolution_api_webhook_structure": {
+    "event": "messages.upsert",
+    "instance": "string (instance name)",
+    "data": {
+      "key": {
+        "remoteJid": "phone@s.whatsapp.net or phone@g.us",
+        "fromMe": "boolean",
+        "id": "string (message ID)"
+      },
+      "pushName": "string (sender name)",
+      "message": {
+        "conversation": "for text messages",
+        "extendedTextMessage": { "text": "for link preview messages" },
+        "imageMessage": { "url": "media URL", "caption": "optional" },
+        "videoMessage": { "url": "media URL", "caption": "optional" },
+        "audioMessage": { "url": "media URL" },
+        "documentMessage": { "url": "media URL", "caption": "optional", "fileName": "string" }
+      },
+      "messageType": "conversation | extendedTextMessage | imageMessage | videoMessage | audioMessage | documentMessage",
+      "messageTimestamp": "Unix timestamp (seconds)"
+    }
+  },
+  "created_at": "2026-01-11T16:30:00.000Z"
+}

@@ -427,29 +427,24 @@ export class CustomPageController {
             letter-spacing: 0.5px;
           }
           
-          .status-badge.authorized {
+          .status-badge.open {
             background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
             color: #155724;
           }
           
-          .status-badge.notAuthorized {
+          .status-badge.close {
             background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
             color: #721c24;
           }
           
-          .status-badge.starting {
+          .status-badge.connecting {
             background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
             color: #856404;
           }
           
-          .status-badge.yellowCard {
-            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
-            color: #856404;
-          }
-          
-          .status-badge.blocked {
-            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
-            color: #721c24;
+          .status-badge.unknown {
+            background: linear-gradient(135deg, #e2e3e5 0%, #d6d8db 100%);
+            color: #383d41;
           }
           
           .instance-name {
@@ -752,18 +747,27 @@ export class CustomPageController {
                 <h2>➕ Add New Instance</h2>
                 <form id="instanceForm">
                   <div class="form-group">
-                    <label for="instanceId">Instance ID</label>
-                    <input type="text" id="instanceId" name="instanceId" placeholder="e.g., 1234567890" required>
+                    <label for="instanceName">Instance Name</label>
+                    <input type="text" id="instanceName" name="instanceName" placeholder="e.g., embody-alphen" required>
+                    <small style="color: #666; display: block; margin-top: 4px;">The name of your Evolution API instance</small>
                   </div>
                   
                   <div class="form-group">
-                    <label for="apiToken">API Token</label>
-                    <input type="text" id="apiToken" name="apiToken" placeholder="Your Evolution API token" required>
+                    <label for="evolutionApiUrl">Evolution API URL</label>
+                    <input type="url" id="evolutionApiUrl" name="evolutionApiUrl" placeholder="e.g., https://evolution.nulab.cc" required>
+                    <small style="color: #666; display: block; margin-top: 4px;">The base URL of your Evolution API server</small>
                   </div>
                   
                   <div class="form-group">
-                    <label for="instanceName">Instance Name (optional)</label>
-                    <input type="text" id="instanceName" name="instanceName" placeholder="e.g., Sales Team WhatsApp">
+                    <label for="evolutionApiKey">Evolution API Key</label>
+                    <input type="text" id="evolutionApiKey" name="evolutionApiKey" placeholder="Your Evolution API key" required>
+                    <small style="color: #666; display: block; margin-top: 4px;">The global API key from your Evolution API</small>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="displayName">Display Name (optional)</label>
+                    <input type="text" id="displayName" name="displayName" placeholder="e.g., Embody Alphen WhatsApp">
+                    <small style="color: #666; display: block; margin-top: 4px;">A friendly name for this instance</small>
                   </div>
                   
                   <button type="submit" id="submitBtn" class="btn">Add Instance</button>
@@ -1039,13 +1043,13 @@ export class CustomPageController {
               
               instancesList.innerHTML = this.instances.map(instance => \`
                 <div class="instance-card" data-instance-id="\${instance.id}">
-                  <div class="status-badge \${instance.state}">\${instance.state || 'unknown'}</div>
+                  <div class="status-badge \${instance.state || 'unknown'}">\${instance.state === 'open' ? 'Connected' : instance.state === 'close' ? 'Disconnected' : instance.state === 'connecting' ? 'Connecting' : 'Unknown'}</div>
                   <div class="instance-name">
-                    <span id="name-display-\${instance.id}">\${instance.name || 'Unnamed Instance'}</span>
+                    <span id="name-display-\${instance.id}">\${instance.name || instance.instanceName}</span>
                     <input type="text" id="name-input-\${instance.id}" value="\${instance.name || ''}" class="hidden">
                     <button id="edit-btn-\${instance.id}" onclick="window.instanceHandler.editInstanceName('\${instance.id}')" class="btn secondary hidden">Save</button>
                   </div>
-                  <div class="instance-id">Instance ID: \${instance.id}</div>
+                  <div class="instance-id">Instance: \${instance.instanceName}</div>
                   <div class="instance-meta">
                     <strong>Created:</strong> \${new Date(instance.createdAt).toLocaleDateString()}
                   </div>
@@ -1143,9 +1147,10 @@ export class CustomPageController {
               
               const payload = {
                 locationId: this.locationId,
-                instanceId: formData.get('instanceId'),
-                apiToken: formData.get('apiToken'),
-                name: formData.get('instanceName') || undefined
+                instanceName: formData.get('instanceName'),
+                evolutionApiUrl: formData.get('evolutionApiUrl').replace(/\\/$/, ''),
+                evolutionApiKey: formData.get('evolutionApiKey'),
+                name: formData.get('displayName') || undefined
               };
 
               submitBtn.disabled = true;

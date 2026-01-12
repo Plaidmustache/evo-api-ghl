@@ -364,9 +364,12 @@ export class GhlService {
 		instance: Instance & { user: User },
 		webhook: EvolutionWebhook,
 	): Promise<void> {
-		this.logger.log(`Handling Evolution webhook: ${webhook.event} for instance ${instance.instanceName}`);
+		// Normalize event name: messages.upsert → MESSAGES_UPSERT
+		const normalizedEvent = webhook.event.replace(/\./g, '_').toUpperCase();
+		
+		this.logger.log(`Handling Evolution webhook: ${normalizedEvent} for instance ${instance.instanceName}`);
 
-		switch (webhook.event) {
+		switch (normalizedEvent as any) {
 			case "CONNECTION_UPDATE":
 				if (isConnectionUpdateData(webhook.data)) {
 					await this.handleConnectionUpdate(instance, webhook.data.state);

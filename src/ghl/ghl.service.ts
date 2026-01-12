@@ -376,8 +376,20 @@ export class GhlService {
 				}
 				break;
 			case "MESSAGES_UPSERT":
-				if (isMessagesUpsertData(webhook.data)) {
-					await this.handleMessagesUpsert(instance, webhook.data.messages || []);
+				// Evolution API can send messages in two formats:
+				// 1. data.messages array (multiple messages)
+				// 2. data is the message itself (single message)
+				let messages: EvolutionMessage[] = [];
+				
+				if (isMessagesUpsertData(webhook.data) && webhook.data.messages) {
+					messages = webhook.data.messages;
+				} else if ('key' in webhook.data && 'message' in webhook.data) {
+					// Single message format - wrap it in an array
+					messages = [webhook.data as any];
+				}
+				
+				if (messages.length > 0) {
+					await this.handleMessagesUpsert(instance, messages);
 				}
 				break;
 			case "MESSAGES_UPDATE":

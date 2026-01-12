@@ -15,74 +15,39 @@
           "id": "subtask-1-1",
           "description": "Rebrand UI from GREEN-API to Evolution API: update title, header, colors (#3B9702 → #0d9488), replace logo SVG with WhatsApp icon",
           "service": "main",
-          "status": "completed",
+          "status": "pending",
           "files_to_create": [],
-          "files_to_modify": [
-            "src/custom-page/custom-page.controller.ts"
-          ],
+          "files_to_modify": ["src/custom-page/custom-page.controller.ts"],
           "patterns_from": [],
           "verification": {
             "type": "manual",
             "run": "Search file for GREEN-API and #3B9702 - should find zero matches"
-          },
-          "notes": "Rebranded UI from GREEN-API to Evolution API: updated title, header text, changed color scheme from #3B9702 to #0d9488, replaced logo SVG with WhatsApp icon, updated modal accent colors. Verified no #3B9702 references remain.",
-          "updated_at": "2026-01-11T16:35:09.047604+00:00"
+          }
         },
         {
           "id": "subtask-1-2",
           "description": "Update form fields and payload: remove instanceId/apiToken inputs, add instanceName/evolutionApiUrl/evolutionApiKey inputs, update form submission payload, update instance card display, remove openGreenApiConsole function",
           "service": "main",
-          "status": "completed",
+          "status": "pending",
           "files_to_create": [],
-          "files_to_modify": [
-            "src/custom-page/custom-page.controller.ts"
-          ],
+          "files_to_modify": ["src/custom-page/custom-page.controller.ts"],
           "patterns_from": [],
           "verification": {
             "type": "manual",
             "run": "Review form fields and payload structure in generateCustomPageHTML method"
-          },
-          "notes": "Updated form fields and payload for Evolution API. Removed instanceId/apiToken inputs, added instanceName/evolutionApiUrl/evolutionApiKey inputs, updated form submission payload, updated instance card display to show instanceName and evolutionApiUrl, removed openGreenApiConsole function and Open Console button, updated status badge CSS classes (authorized→open, notAuthorized→close, added connecting).",
-          "updated_at": "2026-01-11T16:37:06.561131+00:00"
+          }
         }
       ]
     }
   ],
   "qa_signoff": {
-    "status": "approved",
-    "qa_session": 0,
-    "issues_found": [
-      {
-        "description": "None"
-      }
-    ],
-    "tests_passed": {},
-    "timestamp": "2026-01-11T16:39:27.072417+00:00",
-    "ready_for_qa_revalidation": false
+    "status": "pending",
+    "tests_passed": "",
+    "issues": ""
   },
   "metadata": {
     "created_at": "2025-01-11T00:00:00Z",
     "complexity": "simple",
     "estimated_sessions": 1
-  },
-  "last_updated": "2026-01-11T16:39:27.072443+00:00",
-  "status": "human_review",
-  "planStatus": "review",
-  "qa_iteration_history": [
-    {
-      "iteration": 1,
-      "status": "approved",
-      "timestamp": "2026-01-11T16:39:36.381160+00:00",
-      "issues": [],
-      "duration_seconds": 127.47
-    }
-  ],
-  "qa_stats": {
-    "total_iterations": 1,
-    "last_iteration": 1,
-    "last_status": "approved",
-    "issues_by_type": {}
-  },
-  "updated_at": "2026-01-11T17:08:30.169Z",
-  "recoveryNote": "Task recovered from stuck state at 2026-01-11T17:08:30.169Z"
+  }
 }

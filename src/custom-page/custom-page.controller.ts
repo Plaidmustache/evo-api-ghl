@@ -76,7 +76,7 @@ export class CustomPageController {
       <html lang="en">
       <head>
         <meta charset="UTF-8">
-        <title>WhatsApp Integration - GREEN-API</title>
+        <title>WhatsApp Integration - Evolution API</title>
         <style>
           * {
             margin: 0;
@@ -103,7 +103,7 @@ export class CustomPageController {
           }
           
           .header {
-            background: linear-gradient(135deg, #3B9702 0%, #2d7200 100%);
+            background: linear-gradient(135deg, #0d9488 0%, #0a7570 100%);
             color: white;
             padding: 40px 30px;
             text-align: center;
@@ -175,7 +175,7 @@ export class CustomPageController {
             width: 50px;
             height: 50px;
             border: 4px solid #f3f3f3;
-            border-top: 4px solid #3B9702;
+            border-top: 4px solid #0d9488;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin: 0 auto 30px;
@@ -225,7 +225,7 @@ export class CustomPageController {
             background: white;
             border-radius: 12px;
             padding: 20px;
-            border-left: 4px solid #3B9702;
+            border-left: 4px solid #0d9488;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
           }
           
@@ -261,8 +261,8 @@ export class CustomPageController {
           
           .form-group input:focus {
             outline: none;
-            border-color: #3B9702;
-            box-shadow: 0 0 0 3px rgba(59, 151, 2, 0.1);
+            border-color: #0d9488;
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
             transform: translateY(-1px);
           }
           
@@ -271,7 +271,7 @@ export class CustomPageController {
           }
           
           .btn {
-            background: linear-gradient(135deg, #3B9702 0%, #2d7200 100%);
+            background: linear-gradient(135deg, #0d9488 0%, #0a7570 100%);
             color: white;
             padding: 14px 28px;
             border: none;
@@ -301,7 +301,7 @@ export class CustomPageController {
           
           .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(59, 151, 2, 0.3);
+            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.3);
           }
           
           .btn:active {
@@ -408,7 +408,7 @@ export class CustomPageController {
             left: 0;
             right: 0;
             height: 4px;
-            background: linear-gradient(90deg, #3B9702, #25D366);
+            background: linear-gradient(90deg, #0d9488, #25D366);
           }
           
           .instance-card:hover {
@@ -428,29 +428,19 @@ export class CustomPageController {
             letter-spacing: 0.5px;
           }
           
-          .status-badge.authorized {
+          .status-badge.open {
             background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
             color: #155724;
           }
-          
-          .status-badge.notAuthorized {
+
+          .status-badge.close {
             background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
             color: #721c24;
           }
-          
-          .status-badge.starting {
+
+          .status-badge.connecting {
             background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
             color: #856404;
-          }
-          
-          .status-badge.yellowCard {
-            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
-            color: #856404;
-          }
-          
-          .status-badge.blocked {
-            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
-            color: #721c24;
           }
           
           .instance-name {
@@ -625,18 +615,7 @@ export class CustomPageController {
             flex: 1;
             min-width: 100px;
           }
-			
-          .btn[title*="Console"] {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            position: relative;
-          }
-			
-          .btn[title*="Console"]:hover {
-            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
-          }
-          
+
           @media (max-width: 768px) {
 		    .instance-actions {
 			  flex-direction: column;
@@ -701,28 +680,12 @@ export class CustomPageController {
         <div class="container">
           <div class="header">
             <div class="logo-container">
-              <svg class="logo" xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1000px" height="1000px" version="1.1" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd" viewBox="0 0 98.822 98.823" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xodm="http://www.corel.com/coreldraw/odm/2003">
-                <defs>
-                  <style type="text/css">
-                    <![CDATA[
-                    .fil0 {fill:#3B9702}
-                    .fil1 {fill:white}
-                    .fil2 {fill:white;fill-rule:nonzero}
-                    ]]>
-                  </style>
-                </defs>
-                <g id="Слой_x0020_1">
-                  <metadata id="CorelCorpID_0Corel-Layer"/>
-                  <g id="_2274748282416">
-                    <circle class="fil0" cx="49.411" cy="49.411" r="49.411"/>
-                    <path class="fil1" d="M80.075 18.748c-7.846,-7.847 -18.688,-12.701 -30.663,-12.701 -11.976,0 -22.818,4.854 -30.664,12.701 -7.847,7.847 -12.701,18.689 -12.701,30.664 0,11.975 4.854,22.817 12.701,30.664 7.847,7.846 18.689,12.7 30.664,12.7 11.975,0 22.816,-4.853 30.663,-12.7 7.847,-7.847 12.701,-18.689 12.701,-30.664 0,-11.975 -4.854,-22.817 -12.701,-30.664zm-3.425 3.425c-6.971,-6.97 -16.601,-11.282 -27.238,-11.282 -10.638,0 -20.269,4.312 -27.239,11.282 -6.97,6.97 -11.282,16.601 -11.282,27.239 0,10.637 4.312,20.268 11.282,27.238 6.97,6.97 16.601,11.282 27.239,11.282 10.637,0 20.267,-4.311 27.238,-11.282 6.97,-6.97 11.281,-16.601 11.281,-27.238 0,-10.638 -4.311,-20.268 -11.281,-27.239z"/>
-                    <path class="fil2" d="M50.839 74.623c-3.9,0 -7.417,-0.627 -10.552,-1.88 -3.134,-1.254 -5.838,-3.018 -8.113,-5.293 -2.275,-2.275 -4.016,-4.945 -5.224,-8.01 -1.207,-3.064 -1.81,-6.407 -1.81,-10.029 0,-3.622 0.65,-6.964 1.95,-10.029 1.3,-3.064 3.122,-5.734 5.466,-8.009 2.346,-2.275 5.131,-4.04 8.358,-5.293 3.227,-1.254 6.768,-1.881 10.622,-1.881 2.646,0 5.165,0.348 7.556,1.045 2.391,0.697 4.573,1.648 6.547,2.855 1.973,1.208 3.61,2.577 4.91,4.11l-7.313 7.661c-1.671,-1.579 -3.47,-2.821 -5.397,-3.726 -1.927,-0.906 -4.098,-1.358 -6.513,-1.358 -1.996,0 -3.842,0.359 -5.536,1.079 -1.695,0.72 -3.181,1.741 -4.457,3.065 -1.277,1.323 -2.264,2.878 -2.961,4.666 -0.696,1.787 -1.044,3.726 -1.044,5.815 0,2.09 0.371,4.017 1.114,5.781 0.743,1.765 1.776,3.308 3.1,4.632 1.322,1.323 2.866,2.356 4.631,3.099 1.764,0.743 3.668,1.114 5.711,1.114 1.439,0 2.774,-0.22 4.005,-0.661 1.23,-0.442 2.321,-1.045 3.273,-1.811 0.952,-0.767 1.695,-1.672 2.229,-2.717 0.533,-1.045 0.801,-2.17 0.801,-3.377l0 -1.811 1.532 2.367 -13.303 0 0 -9.402 22.914 0c0.093,0.511 0.163,1.207 0.209,2.09 0.046,0.882 0.081,1.729 0.104,2.542 0.024,0.813 0.035,1.451 0.035,1.915 0,3.157 -0.568,6.047 -1.706,8.671 -1.137,2.624 -2.739,4.887 -4.806,6.791 -2.066,1.903 -4.492,3.378 -7.278,4.422 -2.785,1.045 -5.804,1.567 -9.054,1.567l0 0z"/>
-                  </g>
-                </g>
+              <svg class="logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="white">
+                <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/>
               </svg>
               <h1>WhatsApp Integration</h1>
             </div>
-            <p>Manage your GREEN-API instances with ease</p>
+            <p>Manage your Evolution API instances with ease</p>
           </div>
 
           <div class="content">
@@ -753,23 +716,28 @@ export class CustomPageController {
                 <h2>➕ Add New Instance</h2>
                 <form id="instanceForm">
                   <div class="form-group">
-                    <label for="instanceId">Instance ID</label>
-                    <input type="text" id="instanceId" name="instanceId" placeholder="e.g., 1234567890" required>
+                    <label for="instanceName">Instance Name</label>
+                    <input type="text" id="instanceName" name="instanceName" placeholder="e.g., my-whatsapp-instance" required>
                   </div>
-                  
+
                   <div class="form-group">
-                    <label for="apiToken">API Token</label>
-                    <input type="text" id="apiToken" name="apiToken" placeholder="Your GREEN-API token" required>
+                    <label for="evolutionApiUrl">Evolution API URL</label>
+                    <input type="url" id="evolutionApiUrl" name="evolutionApiUrl" placeholder="e.g., https://evolution.yourdomain.com" required>
                   </div>
-                  
+
                   <div class="form-group">
-                    <label for="instanceName">Instance Name (optional)</label>
-                    <input type="text" id="instanceName" name="instanceName" placeholder="e.g., Sales Team WhatsApp">
+                    <label for="evolutionApiKey">API Key</label>
+                    <input type="password" id="evolutionApiKey" name="evolutionApiKey" placeholder="Your Evolution API global key" required>
                   </div>
-                  
+
+                  <div class="form-group">
+                    <label for="displayName">Display Name (optional)</label>
+                    <input type="text" id="displayName" name="displayName" placeholder="e.g., Sales Team WhatsApp">
+                  </div>
+
                   <button type="submit" id="submitBtn" class="btn">Add Instance</button>
                 </form>
-                
+
                 <div id="result"></div>
               </div>
             </div>
@@ -828,7 +796,7 @@ export class CustomPageController {
             
             alert(message, title = 'Notice') {
               return new Promise((resolve) => {
-                this.title.innerHTML = '<span style="color: #3B9702;">ℹ️</span> ' + title;
+                this.title.innerHTML = '<span style="color: #0d9488;">ℹ️</span> ' + title;
                 this.body.textContent = message;
                 this.cancelBtn.classList.add('hidden');
                 this.confirmBtn.textContent = 'OK';
@@ -915,11 +883,6 @@ export class CustomPageController {
                 }
               }, 10000);
             }
-            
-            openGreenApiConsole(instanceId) {
-			  const consoleUrl = \`https://console.green-api.com/instanceList/\${instanceId}\`;
-			  window.open(consoleUrl, '_blank', 'noopener,noreferrer');
-			}
 
             handleMessage(event) {
               if (event.data && event.data.message === 'REQUEST_USER_DATA_RESPONSE') {
@@ -1051,14 +1014,12 @@ export class CustomPageController {
                     <input type="text" id="name-input-\${instance.id}" value="\${instance.name || ''}" class="hidden">
                     <button id="edit-btn-\${instance.id}" onclick="window.instanceHandler.editInstanceName('\${instance.id}')" class="btn secondary hidden">Save</button>
                   </div>
-                  <div class="instance-id">Instance ID: \${instance.id}</div>
+                  <div class="instance-id">Instance: \${instance.instanceName || instance.id}</div>
                   <div class="instance-meta">
+                    <strong>API URL:</strong> \${instance.evolutionApiUrl || 'N/A'}<br>
                     <strong>Created:</strong> \${new Date(instance.createdAt).toLocaleDateString()}
                   </div>
                   <div class="instance-actions">
-                  	<button onclick="window.instanceHandler.openGreenApiConsole('\${instance.id}')" class="btn" title="Open GREEN-API Console">
-					  Open Console
-					</button>
                     <button onclick="window.instanceHandler.toggleEditMode('\${instance.id}')" class="btn secondary">Edit Name</button>
                     <button class="btn danger" onclick="window.instanceHandler.deleteInstance('\${instance.id}')">Delete</button>
                   </div>
@@ -1152,9 +1113,10 @@ export class CustomPageController {
               
               const payload = {
                 locationId: this.locationId,
-                instanceId: formData.get('instanceId'),
-                apiToken: formData.get('apiToken'),
-                name: formData.get('instanceName') || undefined
+                instanceName: formData.get('instanceName'),
+                evolutionApiUrl: formData.get('evolutionApiUrl'),
+                evolutionApiKey: formData.get('evolutionApiKey'),
+                name: formData.get('displayName') || undefined
               };
 
               submitBtn.disabled = true;

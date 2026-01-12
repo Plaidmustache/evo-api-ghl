@@ -541,28 +541,40 @@ export class GhlService {
 	): Promise<void> {
 		const { client } = await this.getValidGhlClient(user);
 
+		let conversationId: string | undefined;
+
+		// Step 1: Create or get existing conversation
 		try {
-			// Create or get conversation
 			const convResponse = await client.post("/conversations/", {
 				locationId: user.id,
 				contactId,
 			});
-
-			const conversationId = convResponse.data.conversation?.id;
-			if (!conversationId) {
-				throw new Error("Failed to create conversation");
+			conversationId = convResponse.data.conversation?.id;
+		} catch (error) {
+			// Handle "Conversation already exists" - GHL returns 400 with conversationId
+			if (error.response?.status === 400 && error.response?.data?.conversationId) {
+				conversationId = error.response.data.conversationId;
+				this.logger.log(`Using existing conversation: ${conversationId}`);
+			} else {
+				this.logger.error(`Failed to create conversation: ${error.message}`);
+				throw error;
 			}
+		}
 
-			// Send inbound message
+		if (!conversationId) {
+			throw new Error("Failed to get conversation ID");
+		}
+
+		// Step 2: Send inbound message
+		try {
 			await client.post(`/conversations/${conversationId}/messages/inbound`, {
 				type: message.type || "Custom",
 				message: message.text || message.body,
 				attachments: message.attachments,
 			});
-
 			this.logger.log(`Message sent to GHL conversation ${conversationId}`);
 		} catch (error) {
-			this.logger.error(`Failed to send message to GHL: ${error.message}`);
+			this.logger.error(`Failed to send message to GHL conversation: ${error.message}`);
 			throw error;
 		}
 	}

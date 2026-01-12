@@ -1,0 +1,25 @@
+{
+  "task_description": "Rebrand custom page UI from GREEN-API to Evolution API and update form fields in src/custom-page/custom-page.controller.ts",
+  "scoped_services": ["main"],
+  "files_to_modify": [
+    "src/custom-page/custom-page.controller.ts"
+  ],
+  "files_to_reference": [],
+  "patterns": {
+    "color_scheme": {
+      "old": "#3B9702",
+      "new": "#0d9488"
+    },
+    "branding": {
+      "old": "GREEN-API",
+      "new": "Evolution API"
+    }
+  },
+  "service_contexts": {
+    "main": {
+      "description": "Custom page controller with generateCustomPageHTML method",
+      "key_files": ["src/custom-page/custom-page.controller.ts"]
+    }
+  },
+  "created_at": "2025-01-11T00:00:00Z"
+}

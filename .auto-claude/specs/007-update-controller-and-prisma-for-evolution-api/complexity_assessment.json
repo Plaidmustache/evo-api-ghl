@@ -1,0 +1,94 @@
+{
+  "complexity": "standard",
+  "workflow_type": "refactor",
+  "confidence": 0.90,
+  "reasoning": "This is a targeted refactor of 2 core files (controller and prisma service) to migrate from Green API's BigInt identifiers to Evolution API's string-based instanceName. No external integrations, infrastructure changes, or research required. Clear patterns exist in codebase.",
+
+  "analysis": {
+    "scope": {
+      "estimated_files": 3,
+      "estimated_services": 1,
+      "is_cross_cutting": false,
+      "notes": "Primary changes in ghl.controller.ts and prisma.service.ts. May need to verify ghl.service.ts method calls align with new signatures."
+    },
+    "integrations": {
+      "external_services": [],
+      "new_dependencies": [],
+      "research_needed": false,
+      "notes": "Actually removing dependency on @green-api/greenapi-integration (StorageProvider interface). Evolution API integration already established in other files."
+    },
+    "infrastructure": {
+      "docker_changes": false,
+      "database_changes": false,
+      "config_changes": false,
+      "notes": "Database schema was already updated in previous tasks. This is code-layer changes only to use the new instanceName field."
+    },
+    "knowledge": {
+      "patterns_exist": true,
+      "research_required": false,
+      "unfamiliar_tech": [],
+      "notes": "Standard NestJS controller patterns and Prisma service patterns. Just changing identifier types from BigInt to string."
+    },
+    "risk": {
+      "level": "medium",
+      "concerns": [
+        "Method signature changes may break callers in ghl.service.ts",
+        "Response format changes in API endpoints",
+        "Ensuring all BigInt conversions are removed"
+      ],
+      "notes": "Risk is contained to instance management layer. User model methods explicitly excluded from changes."
+    }
+  },
+
+  "recommended_phases": [
+    "discovery",
+    "requirements",
+    "context",
+    "spec_writing",
+    "planning",
+    "validation"
+  ],
+
+  "flags": {
+    "needs_research": false,
+    "needs_self_critique": false,
+    "needs_infrastructure_setup": false
+  },
+
+  "validation_recommendations": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "minimal_mode": false,
+    "test_types_required": ["unit", "integration"],
+    "security_scan_required": false,
+    "staging_deployment_required": false,
+    "reasoning": "Method signature changes and API response format changes require unit tests for business logic and integration tests for HTTP layer. No auth or sensitive data handling is being modified."
+  },
+
+  "key_changes_summary": {
+    "ghl_controller": {
+      "dto_changes": "CreateInstanceDto: remove instanceId/apiToken, add instanceName/evolutionApiUrl/evolutionApiKey",
+      "method_changes": [
+        "getInstances(): Return instanceName instead of idInstance, add evolutionApiUrl",
+        "createInstance(): Call createEvolutionInstanceForUser with new params",
+        "deleteInstance(): Use instanceName (string) param instead of BigInt",
+        "updateInstance(): Use instanceName (string) param instead of BigInt"
+      ],
+      "imports_to_remove": ["GreenApiLogger from @green-api/greenapi-integration"]
+    },
+    "prisma_service": {
+      "interface_changes": "Remove StorageProvider implementation from @green-api/greenapi-integration",
+      "method_changes": [
+        "getInstance(instanceName: string) - find by instanceName",
+        "removeInstance(instanceName: string) - delete by instanceName",
+        "updateInstanceSettings(instanceName: string, settings)",
+        "updateInstanceState(instanceName: string, state)",
+        "updateInstanceName(instanceName: string, name)",
+        "createInstance() - use new schema fields (instanceName, evolutionApiUrl, evolutionApiKey)"
+      ],
+      "remove": ["All BigInt conversions", "StorageProvider and Settings imports"]
+    }
+  },
+
+  "created_at": "2025-01-11T17:30:00.000Z"
+}

@@ -1,0 +1,384 @@
+{
+  "spec_id": "006-update-custom-page-ui-for-evolution-api",
+  "created_at": "2026-01-11T16:29:29.320101+00:00",
+  "updated_at": "2026-01-11T16:32:38.620760+00:00",
+  "phases": {
+    "planning": {
+      "phase": "planning",
+      "status": "completed",
+      "started_at": "2026-01-11T16:29:29.320233+00:00",
+      "completed_at": "2026-01-11T16:32:38.619808+00:00",
+      "entries": [
+        {
+          "timestamp": "2026-01-11T16:29:29.320257+00:00",
+          "type": "phase_start",
+          "content": "Starting spec creation process",
+          "phase": "planning"
+        },
+        {
+          "timestamp": "2026-01-11T16:29:29.321349+00:00",
+          "type": "info",
+          "content": "Starting phase 1: PROJECT DISCOVERY",
+          "phase": "planning"
+        },
+        {
+          "timestamp": "2026-01-11T16:29:29.584720+00:00",
+          "type": "success",
+          "content": "Discovered 40 files in project",
+          "phase": "planning"
+        },
+        {
+          "timestamp": "2026-01-11T16:29:29.585395+00:00",
+          "type": "info",
+          "content": "Starting phase 2: REQUIREMENTS GATHERING",
+          "phase": "planning"
+        },
+        {
+          "timestamp": "2026-01-11T16:29:44.386243+00:00",
+          "type": "info",
+          "content": "Starting phase 3: COMPLEXITY ASSESSMENT",
+          "phase": "planning"
+        },
+        {
+          "timestamp": "2026-01-11T16:29:44.386951+00:00",
+          "type": "info",
+          "content": "Analyzing task complexity with AI...",
+          "phase": "planning"
+        },
+        {
+          "timestamp": "2026-01-11T16:29:50.615586+00:00",
+          "type": "text",
+          "content": "I'll analyze the complexity of this task. Let me start by reading the requirements file.",
+          "phase": "planning"
+        },
+        {
+          "timestamp": "2026-01-11T16:29:50.616212+00:00",
+          "type": "tool_start",
+          "content": "[Read] ...tom-page-ui-for-evolution-api/requirements.json",
+          "phase": "planning",
+          "tool_name": "Read",
+          "tool_input": "...tom-page-ui-for-evolution-api/requirements.json"
+        },
+        {
+          "timestamp": "2026-01-11T16:29:50.616621+00:00",
+          "type": "tool_start",
+          "content": "[Read] ...i-ghl/src/custom-page/custom-page.controller.ts",
+          "phase": "planning",
+          "tool_name": "Read",
+          "tool_input": "...i-ghl/src/custom-page/custom-page.controller.ts"
+        },
+        {
+          "timestamp": "2026-01-11T16:29:50.631446+00:00",
+          "type": "tool_end",
+          "content": "[Read] Done",
+          "phase": "planning",
+          "tool_name": "Read",
+          "detail": "     1→{\n     2→  \"task_description\": \"Update the custom page UI for Evolution API branding and new form fields.\\n\\n## Update: src/custom-page/custom-page.controller.ts\\n\\n### Update generateCustomPageHTML() method:\\n\\n1. Rebrand from GREEN-API to Evolution API:\\n   - Change title from \\\"WhatsApp Integration - GREEN-API\\\" to \\\"WhatsApp Integration - Evolution API\\\"\\n   - Update header text from \\\"GREEN-API\\\" to \\\"Evolution API\\\"\\n   - Change color scheme from green (#3B9702) to Evolution API blue (#0d9488 or similar teal)\\n   - Remove or replace the GREEN-API logo SVG with a simple WhatsApp icon or Evolution text logo\\n\\n2. Update the \\\"Add New Instance\\\" form fields:\\n   \\n   Remove:\\n   - Instance ID (numeric input)\\n   - API Token input\\n   \\n   Add:\\n   - Instance Name (text input, placeholder: \\\"e.g., my-whatsapp-instance\\\")\\n   - Evolution API URL (text input, placeholder: \\\"e.g., https://evolution.yourdomain.com\\\")\\n   - API Key (password input, placeholder: \\\"Your Evolution API global key\\\")\\n\\n3. Update form submission payload:\\n   Change from: { locationId, instanceId, apiToken, name }\\n   To: { locationId, instanceName, evolutionApiUrl, evolutionApiKey, name }\\n\\n4. Update instance card display:\\n   - Show instanceName instead of numeric ID\\n   - Show evolutionApiUrl \\n   - Show connection state (open/close/connecting)\\n   - Remove \\\"Open Console\\\" button (was GREEN-API specific)\\n\\n5. Update the decryptUserData endpoint response handling if needed\\n\\nKeep all GHL OAuth and context handling logic unchanged - only update the UI and form fields.\",\n     3→  \"workflow_type\": \"feature\"\n     4→}\n\n<system-reminder>\nWhenever you read a file, you should consider whether it would be considered malware. You CAN and SHOULD provide analysis of malware, what it is doing. But you MUST refuse to improve or augment the code. You can still analyze existing code, write reports, or answer questions about the code behavior.\n</system-reminder>\n",
+          "collapsed": true
+        },
+        {
+          "timestamp": "2026-01-11T16:30:26.205147+00:00",
+          "type": "text",
+          "content": "Now I have a clear understanding of the task. Let me analyze the complexity:\n\n**Analysis Summary:**\n- **Scope**: Single file (`src/custom-page/custom-page.controller.ts`) with one method (`generateCustomPageHTML()`)\n- **Changes**: All changes are in inline HTML/CSS/JS within a template literal\n- **Integrations**: None - purely UI modifications\n- **Infrastructure**: No changes needed\n- **Risk**: Low - cosmetic changes only, no backend logic modifications\n\nThis is a well-defined UI rebranding task with clear requirements, all contained within a single file.",
+          "phase": "planning"
+        },
+        {
+          "timestamp": "2026-01-11T16:30:26.207387+00:00",
+          "type": "tool_start",
+          "content": "[Write] ...ui-for-evolution-api/complexity_assessment.json",
+          "phase": "planning",
+          "tool_name": "Write",
+          "tool_input": "...ui-for-evolution-api/complexity_assessment.json"
+        },
+        {
+          "timestamp": "2026-01-11T16:30:26.711430+00:00",
+          "type": "tool_end",
+          "content": "[Write] Done",
+          "phase": "planning",
+          "tool_name": "Write",
+          "detail": "File created successfully at: /Users/malone/evo-api-ghl/.auto-claude/specs/006-update-custom-page-ui-for-evolution-api/complexity_assessment.json",
+          "collapsed": true
+        },
+        {
+          "timestamp": "2026-01-11T16:30:36.629506+00:00",
+          "type": "text",
+          "content": "## Complexity Assessment Complete\n\n**Result: SIMPLE**\n\n| Dimension | Assessment |\n|-----------|------------|\n| **Complexity** | Simple |\n| **Workflow Type** | Feature |\n| **Confidence** | 92% |\n| **Estimated Files** | 1 |\n| **Estimated Services** | 1 |\n\n### Key Findings\n\n1. **Scope**: All changes are isolated to a single file (`src/custom-page/custom-page.controller.ts`) and a single method (`generateCustomPageHTML()`)\n\n2. **Change Types**:\n   - CSS color updates: `#3B9702` → `#0d9488` (teal)\n   - Text branding: \"GREEN-API\" → \"Evolution API\"\n   - Logo SVG replacement\n   - Form field restructuring (remove instanceId/apiToken, add instanceName/evolutionApiUrl/evolutionApiKey)\n   - Instance card display updates\n   - Remove \"Open Console\" button\n\n3. **No External Dependencies**: All changes are within inline HTML/CSS/JS - no new packages, no API research needed\n\n4. **Low Risk**: Purely cosmetic UI changes with no backend logic modifications\n\n### Recommended Phases\n```\ndiscovery → quick_spec → validation\n```\n\n### Validation Approach\n- **Risk Level**: Low\n- **Minimal Mode**: Yes\n- **Test Types**: Unit tests only (if they exist)\n- **Security Scan**: Not required\n\nThe assessment has been saved to `complexity_assessment.json` in the spec directory.",
+          "phase": "planning"
+        },
+        {
+          "timestamp": "2026-01-11T16:30:36.646124+00:00",
+          "type": "info",
+          "content": "Starting phase 4: QUICK SPEC",
+          "phase": "planning"
+        },
+        {
+          "timestamp": "2026-01-11T16:30:42.733070+00:00",
+          "type": "text",
+          "content": "I'll create a minimal spec for this UI update task. Let me first quickly look at the target file to understand the current structure.",
+          "phase": "planning"
+        },
+        {
+          "timestamp": "2026-01-11T16:30:42.734196+00:00",
+          "type": "tool_start",
+          "content": "[Read] ...i-ghl/src/custom-page/custom-page.controller.ts",
+          "phase": "planning",
+          "tool_name": "Read",
+          "tool_input": "...i-ghl/src/custom-page/custom-page.controller.ts"
+        },
+        {
+          "timestamp": "2026-01-11T16:30:43.052597+00:00",
+          "type": "tool_end",
+          "content": "[Read] Done",
+          "phase": "planning",
+          "tool_name": "Read",
+          "collapsed": true
+        },
+        {
+          "timestamp": "2026-01-11T16:31:15.473932+00:00",
+          "type": "text",
+          "content": "Now I have a clear picture. This is a single-file UI update. Let me create the minimal spec and implementation plan.",
+          "phase": "planning"
+        },
+        {
+          "timestamp": "2026-01-11T16:31:15.475084+00:00",
+          "type": "tool_start",
+          "content": "[Write] ...update-custom-page-ui-for-evolution-api/spec.md",
+          "phase": "planning",
+          "tool_name": "Write",
+          "tool_input": "...update-custom-page-ui-for-evolution-api/spec.md"
+        },
+        {
+          "timestamp": "2026-01-11T16:31:15.475855+00:00",
+          "type": "tool_start",
+          "content": "[Write] ...e-ui-for-evolution-api/implementation_plan.json",
+          "phase": "planning",
+          "tool_name": "Write",
+          "tool_input": "...e-ui-for-evolution-api/implementation_plan.json"
+        },
+        {
+          "timestamp": "2026-01-11T16:31:15.930144+00:00",
+          "type": "tool_end",
+          "content": "[Write] Done",
+          "phase": "planning",
+          "tool_name": "Write",
+          "detail": "File created successfully at: /Users/malone/evo-api-ghl/.auto-claude/specs/006-update-custom-page-ui-for-evolution-api/spec.md",
+          "collapsed": true
+        },
+        {
+          "timestamp": "2026-01-11T16:31:26.567223+00:00",
+          "type": "tool_start",
+          "content": "[Bash] cat > /Users/malone/evo-api-ghl/.auto-claude/sp...",
+          "phase": "planning",
+          "tool_name": "Bash",
+          "tool_input": "cat > /Users/malone/evo-api-ghl/.auto-claude/sp..."
+        },
+        {
+          "timestamp": "2026-01-11T16:31:26.663362+00:00",
+          "type": "tool_end",
+          "content": "[Bash] Done",
+          "phase": "planning",
+          "tool_name": "Bash",
+          "detail": "",
+          "collapsed": true
+        },
+        {
+          "timestamp": "2026-01-11T16:31:33.117773+00:00",
+          "type": "tool_start",
+          "content": "[Bash] ls -la /Users/malone/evo-api-ghl/.auto-claude/s...",
+          "phase": "planning",
+          "tool_name": "Bash",
+          "tool_input": "ls -la /Users/malone/evo-api-ghl/.auto-claude/s..."
+        },
+        {
+          "timestamp": "2026-01-11T16:31:33.233206+00:00",
+          "type": "tool_end",
+          "content": "[Bash] Done",
+          "phase": "planning",
+          "tool_name": "Bash",
+          "detail": "total 80\ndrwxr-xr-x@  9 malone  staff    288 Jan 11 17:31 .\ndrwxr-xr-x@ 11 malone  staff    352 Jan 11 15:27 ..\n-rw-r--r--@  1 malone  staff   2302 Jan 11 17:30 complexity_assessment.json\n-rw-r--r--@  1 malone  staff   1805 Jan 11 17:31 implementation_plan.json\n-rw-r--r--@  1 malone  staff   7505 Jan 11 17:29 project_index.json\n-rw-r--r--@  1 malone  staff   1599 Jan 11 15:26 requirements.json\n-rw-r--r--@  1 malone  staff   1874 Jan 11 17:31 spec.md\n-rw-------@  1 malone  staff  11360 Jan 11 17:31 task_logs.json\n-rw-r--r--@  1 malone  staff    322 Jan 11 15:26 task_metadata.json\n---\n# Quick Spec: Update Custom Page UI for Evolution API\n\n## Task\nRebrand custom page from GREEN-API to Evolution API and update form fields for Evolution API configuration.\n\n## Files to Modify\n- `src/custom-page/custom-page.controller.ts` - Update `generateCustomPageHTML()` method\n\n## Change Details\n\n### 1. Branding Updates\n- Title: \"WhatsApp Integration - GREEN-API\" → \"WhatsApp Integration - Evolution API\"\n- Header text: \"GREEN-API\" → \"Evolution API\"\n- Color scheme: Green (#3B9702) → Teal (#0d9488)\n- Replace GREEN-API logo SVG with WhatsApp icon\n\n### 2. Form Field Changes\n**Remove:**\n- Instance ID (numeric input, line ~756)\n- API Token input (line ~761)\n\n**Add:**\n- Instance Name (text, placeholder: \"e.g., my-whatsapp-instance\")\n- Evolution API URL (text, placeholder: \"e.g., https://evolution.yourdomain.com\")\n- API Key (password, placeholder: \"Your Evolution API global key\")\n\n### 3. Payload Update (line ~1153-1158)\n```javascript\n// OLD\n{ locationId, instanceId, apiToken, name }",
+          "collapsed": true
+        },
+        {
+          "timestamp": "2026-01-11T16:31:38.857780+00:00",
+          "type": "text",
+          "content": "```\n=== QUICK SPEC COMPLETE ===\n\nTask: Update Custom Page UI for Evolution API\nFiles: 1 file to modify (src/custom-page/custom-page.controller.ts)\nSubtasks: 2 (branding + form fields)\nComplexity: SIMPLE\n\nOutputs:\n✅ spec.md - Concise spec with branding and form field changes\n✅ implementation_plan.json - 2 subtasks in 1 phase\n\nReady for implementation.\n```",
+          "phase": "planning"
+        },
+        {
+          "timestamp": "2026-01-11T16:31:53.845354+00:00",
+          "type": "info",
+          "content": "Starting phase 5: FINAL VALIDATION",
+          "phase": "planning"
+        },
+        {
+          "timestamp": "2026-01-11T16:32:02.164263+00:00",
+          "type": "text",
+          "content": "I'll analyze the validation errors and fix each file. Let me start by reading the failed files.",
+          "phase": "planning"
+        },
+        {
+          "timestamp": "2026-01-11T16:32:02.165655+00:00",
+          "type": "tool_start",
+          "content": "[Read] ...e-custom-page-ui-for-evolution-api/context.json",
+          "phase": "planning",
+          "tool_name": "Read",
+          "tool_input": "...e-custom-page-ui-for-evolution-api/context.json"
+        },
+        {
+          "timestamp": "2026-01-11T16:32:02.166985+00:00",
+          "type": "tool_start",
+          "content": "[Read] ...update-custom-page-ui-for-evolution-api/spec.md",
+          "phase": "planning",
+          "tool_name": "Read",
+          "tool_input": "...update-custom-page-ui-for-evolution-api/spec.md"
+        },
+        {
+          "timestamp": "2026-01-11T16:32:02.167990+00:00",
+          "type": "tool_start",
+          "content": "[Read] ...e-ui-for-evolution-api/implementation_plan.json",
+          "phase": "planning",
+          "tool_name": "Read",
+          "tool_input": "...e-ui-for-evolution-api/implementation_plan.json"
+        },
+        {
+          "timestamp": "2026-01-11T16:32:02.186054+00:00",
+          "type": "tool_end",
+          "content": "[Read] Error",
+          "phase": "planning",
+          "tool_name": "Read",
+          "detail": "<tool_use_error>File does not exist.</tool_use_error>",
+          "collapsed": true
+        },
+        {
+          "timestamp": "2026-01-11T16:32:18.439778+00:00",
+          "type": "text",
+          "content": "Now I understand the issues:\n\n1. **context.json** - File doesn't exist, need to create it\n2. **spec.md** - Has content but missing required sections (Overview, Workflow Type, Task Scope, Success Criteria)\n3. **implementation_plan.json** - Has `spec_name` but missing `feature` field\n\nLet me fix all three files:",
+          "phase": "planning"
+        },
+        {
+          "timestamp": "2026-01-11T16:32:18.440994+00:00",
+          "type": "tool_start",
+          "content": "[Write] ...e-custom-page-ui-for-evolution-api/context.json",
+          "phase": "planning",
+          "tool_name": "Write",
+          "tool_input": "...e-custom-page-ui-for-evolution-api/context.json"
+        },
+        {
+          "timestamp": "2026-01-11T16:32:18.441825+00:00",
+          "type": "tool_start",
+          "content": "[Write] ...update-custom-page-ui-for-evolution-api/spec.md",
+          "phase": "planning",
+          "tool_name": "Write",
+          "tool_input": "...update-custom-page-ui-for-evolution-api/spec.md"
+        },
+        {
+          "timestamp": "2026-01-11T16:32:18.442709+00:00",
+          "type": "tool_start",
+          "content": "[Edit] ...e-ui-for-evolution-api/implementation_plan.json",
+          "phase": "planning",
+          "tool_name": "Edit",
+          "tool_input": "...e-ui-for-evolution-api/implementation_plan.json"
+        },
+        {
+          "timestamp": "2026-01-11T16:32:18.903777+00:00",
+          "type": "tool_end",
+          "content": "[Edit] Done",
+          "phase": "planning",
+          "tool_name": "Edit",
+          "detail": "File created successfully at: /Users/malone/evo-api-ghl/.auto-claude/specs/006-update-custom-page-ui-for-evolution-api/context.json",
+          "collapsed": true
+        },
+        {
+          "timestamp": "2026-01-11T16:32:25.542261+00:00",
+          "type": "text",
+          "content": "Now let me verify all fixes are valid:",
+          "phase": "planning"
+        },
+        {
+          "timestamp": "2026-01-11T16:32:25.543987+00:00",
+          "type": "tool_start",
+          "content": "[Bash] cd /Users/malone/evo-api-ghl/.auto-claude/specs...",
+          "phase": "planning",
+          "tool_name": "Bash",
+          "tool_input": "cd /Users/malone/evo-api-ghl/.auto-claude/specs..."
+        },
+        {
+          "timestamp": "2026-01-11T16:32:25.545686+00:00",
+          "type": "tool_start",
+          "content": "[Bash] cd /Users/malone/evo-api-ghl/.auto-claude/specs...",
+          "phase": "planning",
+          "tool_name": "Bash",
+          "tool_input": "cd /Users/malone/evo-api-ghl/.auto-claude/specs..."
+        },
+        {
+          "timestamp": "2026-01-11T16:32:25.546731+00:00",
+          "type": "tool_start",
+          "content": "[Bash] cd /Users/malone/evo-api-ghl/.auto-claude/specs...",
+          "phase": "planning",
+          "tool_name": "Bash",
+          "tool_input": "cd /Users/malone/evo-api-ghl/.auto-claude/specs..."
+        },
+        {
+          "timestamp": "2026-01-11T16:32:25.569340+00:00",
+          "type": "tool_end",
+          "content": "[Bash] Error",
+          "phase": "planning",
+          "tool_name": "Bash",
+          "detail": "Could not parse command for security validation: cd /Users/malone/evo-api-ghl/.auto-claude/specs/006-update-custom-page-ui-for-evolution-api && python3 -c \"import json; json.load(open('context.json')); print('context.json: Valid JSON')\"",
+          "collapsed": true
+        },
+        {
+          "timestamp": "2026-01-11T16:32:30.731258+00:00",
+          "type": "tool_start",
+          "content": "[Bash] cat /Users/malone/evo-api-ghl/.auto-claude/spec...",
+          "phase": "planning",
+          "tool_name": "Bash",
+          "tool_input": "cat /Users/malone/evo-api-ghl/.auto-claude/spec..."
+        },
+        {
+          "timestamp": "2026-01-11T16:32:30.732451+00:00",
+          "type": "tool_start",
+          "content": "[Bash] cat /Users/malone/evo-api-ghl/.auto-claude/spec...",
+          "phase": "planning",
+          "tool_name": "Bash",
+          "tool_input": "cat /Users/malone/evo-api-ghl/.auto-claude/spec..."
+        },
+        {
+          "timestamp": "2026-01-11T16:32:31.598237+00:00",
+          "type": "tool_end",
+          "content": "[Bash] Done",
+          "phase": "planning",
+          "tool_name": "Bash",
+          "detail": "context.json: Valid JSON",
+          "collapsed": true
+        },
+        {
+          "timestamp": "2026-01-11T16:32:38.603480+00:00",
+          "type": "text",
+          "content": "All fixes applied and verified. Here's the summary:\n\n```\n=== VALIDATION FIX APPLIED ===\n\nFile: context.json\nError: context.json not found\nFix: Created new context.json with required 'task_description' field and relevant context\nStatus: Fixed ✓\n\nFile: spec.md\nError: Missing required sections: Overview, Workflow Type, Task Scope, Success Criteria\nFix: Rewrote spec.md with all 4 required sections (## Overview, ## Workflow Type, ## Task Scope, ## Success Criteria)\nStatus: Fixed ✓\n\nFile: implementation_plan.json\nError: Missing required field: feature\nFix: Added 'feature' field with value \"update-custom-page-ui-for-evolution-api\"\nStatus: Fixed ✓\n\n=== ALL VALIDATION ERRORS RESOLVED ===\n```",
+          "phase": "planning"
+        },
+        {
+          "timestamp": "2026-01-11T16:32:38.619836+00:00",
+          "type": "phase_end",
+          "content": "Spec creation complete",
+          "phase": "planning"
+        }
+      ]
+    },
+    "coding": {
+      "phase": "coding",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "entries": []
+    },
+    "validation": {
+      "phase": "validation",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "entries": []
+    }
+  }
+}

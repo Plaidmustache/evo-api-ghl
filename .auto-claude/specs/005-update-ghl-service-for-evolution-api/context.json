@@ -1,0 +1,68 @@
+{
+  "task_description": "Migrate GHL service from GREEN-API SDK to Evolution API client",
+  "scoped_services": ["main"],
+  "files_to_modify": {
+    "main": [
+      "src/ghl/ghl.service.ts",
+      "src/ghl/ghl.module.ts"
+    ]
+  },
+  "files_to_reference": [
+    "src/evolution/evolution-api.client.ts",
+    "src/evolution/evolution-api.types.ts",
+    "src/evolution/evolution.module.ts",
+    "src/ghl/ghl.transformer.ts",
+    "src/ghl/types/evolution-webhook.types.ts"
+  ],
+  "patterns": {
+    "evolution_client_instantiation": "new EvolutionApiClient(baseUrl, apiKey) - create per-instance, not singleton",
+    "logger_pattern": "private readonly logger = new Logger(ClassName.name) - use .log(), .warn(), .error(), .debug()",
+    "module_import_pattern": "Add EvolutionModule to imports array in @Module decorator",
+    "instance_lookup": "Use instanceName (string) instead of idInstance (BigInt)",
+    "connection_state_mapping": "Evolution states: open, close, connecting"
+  },
+  "existing_implementations": {
+    "description": "Evolution API client and types already implemented in worktree 002. Transformer updated in worktree 004. Schema updated in worktree 001.",
+    "relevant_files": {
+      "evolution_client": ".worktrees/002-create-evolution-api-http-client/src/evolution/evolution-api.client.ts",
+      "evolution_types": ".worktrees/002-create-evolution-api-http-client/src/evolution/evolution-api.types.ts",
+      "evolution_module": ".worktrees/002-create-evolution-api-http-client/src/evolution/evolution.module.ts",
+      "updated_transformer": ".worktrees/004-update-message-transformer-for-evolution-api/src/ghl/ghl.transformer.ts",
+      "webhook_types": ".worktrees/004-update-message-transformer-for-evolution-api/src/ghl/types/evolution-webhook.types.ts",
+      "updated_schema": ".worktrees/001-update-prisma-schema-for-evolution-api/prisma/schema.prisma"
+    }
+  },
+  "key_changes": {
+    "imports": {
+      "remove": [
+        "@green-api/greenapi-integration (BaseAdapter, GreenApiWebhook, WebhookType, etc.)",
+        "SendInteractiveButtons from @green-api/greenapi-integration/dist/types/types"
+      ],
+      "add": [
+        "EvolutionApiClient from '../evolution/evolution-api.client'",
+        "Logger from '@nestjs/common'",
+        "EvolutionWebhook from './types/evolution-webhook.types'"
+      ]
+    },
+    "class_definition": {
+      "before": "export class GhlService extends BaseAdapter<...>",
+      "after": "export class GhlService"
+    },
+    "logger": {
+      "before": "this.gaLogger (GreenApiLogger)",
+      "after": "this.logger (NestJS Logger)"
+    },
+    "method_renames": {
+      "createGreenApiInstanceForUser": "createEvolutionInstanceForUser",
+      "handleGreenApiWebhook": "handleEvolutionWebhook",
+      "handleStateInstanceWebhook": "handleConnectionUpdate",
+      "createGreenApiClient": "REMOVE - no longer needed"
+    }
+  },
+  "dependencies_from_other_specs": {
+    "001": "Prisma schema with instanceName, evolutionApiUrl, evolutionApiKey fields",
+    "002": "EvolutionApiClient with sendText, sendMedia, getConnectionState, setWebhook methods",
+    "004": "Updated transformer with toEvolutionMessage and toPlatformMessage methods"
+  },
+  "created_at": "2026-01-11T17:06:14.968192"
+}

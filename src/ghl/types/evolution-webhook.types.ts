@@ -1,295 +1,203 @@
 /**
- * Evolution API Webhook TypeScript interfaces
- * These types define the inbound webhook payload structures from Evolution API
- * for message transformation to GHL Platform format
+ * Evolution API webhook types
+ * These types represent the webhook payloads sent by Evolution API
  */
 
-// ============================================================================
-// Message Key Types
-// ============================================================================
+/**
+ * Evolution API webhook event types
+ */
+export type EvolutionWebhookEvent =
+	| "MESSAGES_UPSERT"
+	| "CONNECTION_UPDATE"
+	| "QRCODE_UPDATED"
+	| "MESSAGES_UPDATE"
+	| "SEND_MESSAGE"
+	| "CONTACTS_UPDATE"
+	| "CHATS_UPDATE";
 
 /**
- * Unique identifier for a WhatsApp message
- * remoteJid format: {phone}@s.whatsapp.net (individual) or {phone}@g.us (group)
+ * Evolution API connection states
+ */
+export type EvolutionConnectionState = "open" | "close" | "connecting";
+
+/**
+ * Instance data in Evolution webhooks
+ */
+export interface EvolutionInstanceData {
+	instanceName: string;
+	instanceId?: string;
+	owner?: string;
+	profileName?: string;
+	profilePictureUrl?: string;
+}
+
+/**
+ * Message key structure
  */
 export interface EvolutionMessageKey {
 	remoteJid: string;
 	fromMe: boolean;
 	id: string;
-}
-
-// ============================================================================
-// Message Content Types
-// ============================================================================
-
-/**
- * Text message content for conversation type
- */
-export interface EvolutionConversationMessage {
-	conversation: string;
+	participant?: string;
 }
 
 /**
- * Extended text message with additional metadata
+ * Message content types
  */
-export interface EvolutionExtendedTextMessage {
-	extendedTextMessage: {
+export interface EvolutionTextMessage {
+	text?: string;
+	extendedTextMessage?: {
 		text: string;
 		matchedText?: string;
 		canonicalUrl?: string;
 		description?: string;
 		title?: string;
 		previewType?: number;
-		contextInfo?: EvolutionContextInfo;
 	};
 }
 
-/**
- * Image message with optional caption and media URL
- */
-export interface EvolutionImageMessage {
-	imageMessage: {
-		url?: string;
-		mimetype?: string;
-		caption?: string;
-		fileSha256?: string;
-		fileLength?: number;
-		height?: number;
-		width?: number;
-		mediaKey?: string;
-		fileEncSha256?: string;
-		directPath?: string;
-		mediaKeyTimestamp?: number;
-		jpegThumbnail?: string;
-		contextInfo?: EvolutionContextInfo;
-	};
+export interface EvolutionMediaMessage {
+	caption?: string;
+	mimetype?: string;
+	url?: string;
+	directPath?: string;
+	mediaKey?: string;
+	fileLength?: number;
+	fileName?: string;
+}
+
+export interface EvolutionImageMessage extends EvolutionMediaMessage {
+	height?: number;
+	width?: number;
+	jpegThumbnail?: string;
+}
+
+export interface EvolutionVideoMessage extends EvolutionMediaMessage {
+	height?: number;
+	width?: number;
+	seconds?: number;
+	gifPlayback?: boolean;
+	jpegThumbnail?: string;
+}
+
+export interface EvolutionAudioMessage extends EvolutionMediaMessage {
+	seconds?: number;
+	ptt?: boolean;
+}
+
+export interface EvolutionDocumentMessage extends EvolutionMediaMessage {
+	title?: string;
+	pageCount?: number;
+}
+
+export interface EvolutionStickerMessage extends EvolutionMediaMessage {
+	isAnimated?: boolean;
+	isAvatar?: boolean;
+	height?: number;
+	width?: number;
+}
+
+export interface EvolutionLocationMessage {
+	degreesLatitude: number;
+	degreesLongitude: number;
+	name?: string;
+	address?: string;
+	url?: string;
+	jpegThumbnail?: string;
+}
+
+export interface EvolutionContactMessage {
+	displayName: string;
+	vcard: string;
+}
+
+export interface EvolutionContactsArrayMessage {
+	contacts: EvolutionContactMessage[];
 }
 
 /**
- * Video message with optional caption and media URL
+ * Message structure in Evolution webhooks
  */
-export interface EvolutionVideoMessage {
-	videoMessage: {
-		url?: string;
-		mimetype?: string;
-		caption?: string;
-		fileSha256?: string;
-		fileLength?: number;
-		height?: number;
-		width?: number;
-		seconds?: number;
-		mediaKey?: string;
-		fileEncSha256?: string;
-		directPath?: string;
-		mediaKeyTimestamp?: number;
-		jpegThumbnail?: string;
-		contextInfo?: EvolutionContextInfo;
-	};
-}
-
-/**
- * Audio message (voice note or audio file)
- */
-export interface EvolutionAudioMessage {
-	audioMessage: {
-		url?: string;
-		mimetype?: string;
-		fileSha256?: string;
-		fileLength?: number;
-		seconds?: number;
-		ptt?: boolean;
-		mediaKey?: string;
-		fileEncSha256?: string;
-		directPath?: string;
-		mediaKeyTimestamp?: number;
-		contextInfo?: EvolutionContextInfo;
-	};
-}
-
-/**
- * Document message with optional caption and filename
- */
-export interface EvolutionDocumentMessage {
-	documentMessage: {
-		url?: string;
-		mimetype?: string;
-		caption?: string;
-		fileSha256?: string;
-		fileLength?: number;
-		fileName?: string;
-		mediaKey?: string;
-		fileEncSha256?: string;
-		directPath?: string;
-		mediaKeyTimestamp?: number;
-		title?: string;
-		pageCount?: number;
-		jpegThumbnail?: string;
-		contextInfo?: EvolutionContextInfo;
-	};
-}
-
-/**
- * Context information for quoted/replied messages
- */
-export interface EvolutionContextInfo {
-	stanzaId?: string;
-	participant?: string;
-	quotedMessage?: Record<string, unknown>;
-}
-
-/**
- * Union type of all possible message content structures
- */
-export type EvolutionMessageContent =
-	| EvolutionConversationMessage
-	| EvolutionExtendedTextMessage
-	| EvolutionImageMessage
-	| EvolutionVideoMessage
-	| EvolutionAudioMessage
-	| EvolutionDocumentMessage;
-
-// ============================================================================
-// Message Type Literals
-// ============================================================================
-
-/**
- * Supported message types from Evolution API
- */
-export type EvolutionMessageType =
-	| "conversation"
-	| "extendedTextMessage"
-	| "imageMessage"
-	| "videoMessage"
-	| "audioMessage"
-	| "documentMessage";
-
-// ============================================================================
-// Webhook Event Types
-// ============================================================================
-
-/**
- * Webhook event types for incoming messages
- */
-export type EvolutionWebhookEvent =
-	| "messages.upsert"
-	| "messages.update"
-	| "messages.delete"
-	| "connection.update"
-	| "qrcode.updated"
-	| "send.message";
-
-// ============================================================================
-// Message Data Types
-// ============================================================================
-
-/**
- * Message data structure within webhook payload
- * Contains the message content, metadata, and sender information
- */
-export interface EvolutionMessageData {
+export interface EvolutionMessage {
 	key: EvolutionMessageKey;
 	pushName?: string;
-	message: EvolutionMessageContent;
-	messageType: EvolutionMessageType;
-	messageTimestamp: number;
-	owner?: string;
-	source?: string;
+	messageTimestamp?: number | string;
+	messageType?: string;
+	message?: {
+		conversation?: string;
+		extendedTextMessage?: {
+			text: string;
+			matchedText?: string;
+			canonicalUrl?: string;
+			description?: string;
+			title?: string;
+		};
+		imageMessage?: EvolutionImageMessage;
+		videoMessage?: EvolutionVideoMessage;
+		audioMessage?: EvolutionAudioMessage;
+		documentMessage?: EvolutionDocumentMessage;
+		stickerMessage?: EvolutionStickerMessage;
+		locationMessage?: EvolutionLocationMessage;
+		contactMessage?: EvolutionContactMessage;
+		contactsArrayMessage?: EvolutionContactsArrayMessage;
+	};
 }
 
-// ============================================================================
-// Webhook Payload Types
-// ============================================================================
+/**
+ * MESSAGES_UPSERT webhook data
+ */
+export interface EvolutionMessagesUpsertData {
+	messages?: EvolutionMessage[];
+	type?: string;
+}
 
 /**
- * Complete webhook payload from Evolution API
- * This is the top-level structure received by the webhook endpoint
- *
- * @example
- * ```json
- * {
- *   "event": "messages.upsert",
- *   "instance": "my-instance",
- *   "data": {
- *     "key": {
- *       "remoteJid": "5511999999999@s.whatsapp.net",
- *       "fromMe": false,
- *       "id": "ABC123"
- *     },
- *     "pushName": "John Doe",
- *     "message": {
- *       "conversation": "Hello!"
- *     },
- *     "messageType": "conversation",
- *     "messageTimestamp": 1704067200
- *   }
- * }
- * ```
+ * CONNECTION_UPDATE webhook data
+ */
+export interface EvolutionConnectionUpdateData {
+	state: EvolutionConnectionState;
+	statusReason?: number;
+}
+
+/**
+ * Union type for all webhook data types
+ */
+export type EvolutionWebhookData =
+	| EvolutionMessagesUpsertData
+	| EvolutionConnectionUpdateData
+	| Record<string, unknown>;
+
+/**
+ * Main Evolution webhook structure
  */
 export interface EvolutionWebhook {
 	event: EvolutionWebhookEvent;
-	instance: string;
-	data: EvolutionMessageData;
+	instance: EvolutionInstanceData;
+	data: EvolutionWebhookData;
 	destination?: string;
 	date_time?: string;
-	sender?: string;
 	server_url?: string;
 	apikey?: string;
 }
 
-// ============================================================================
-// Type Guards
-// ============================================================================
-
 /**
- * Type guard to check if message is a conversation type
+ * Type guard for MESSAGES_UPSERT data
  */
-export function isConversationMessage(
-	message: EvolutionMessageContent,
-): message is EvolutionConversationMessage {
-	return "conversation" in message;
+export function isMessagesUpsertData(data: EvolutionWebhookData): data is EvolutionMessagesUpsertData {
+	return 'messages' in data || 'type' in data;
 }
 
 /**
- * Type guard to check if message is an extended text type
+ * Type guard for CONNECTION_UPDATE data
  */
-export function isExtendedTextMessage(
-	message: EvolutionMessageContent,
-): message is EvolutionExtendedTextMessage {
-	return "extendedTextMessage" in message;
+export function isConnectionUpdateData(data: EvolutionWebhookData): data is EvolutionConnectionUpdateData {
+	return 'state' in data;
 }
 
 /**
- * Type guard to check if message is an image type
+ * Allowed webhook event types for processing
  */
-export function isImageMessage(
-	message: EvolutionMessageContent,
-): message is EvolutionImageMessage {
-	return "imageMessage" in message;
-}
-
-/**
- * Type guard to check if message is a video type
- */
-export function isVideoMessage(
-	message: EvolutionMessageContent,
-): message is EvolutionVideoMessage {
-	return "videoMessage" in message;
-}
-
-/**
- * Type guard to check if message is an audio type
- */
-export function isAudioMessage(
-	message: EvolutionMessageContent,
-): message is EvolutionAudioMessage {
-	return "audioMessage" in message;
-}
-
-/**
- * Type guard to check if message is a document type
- */
-export function isDocumentMessage(
-	message: EvolutionMessageContent,
-): message is EvolutionDocumentMessage {
-	return "documentMessage" in message;
-}
+export const ALLOWED_EVOLUTION_EVENTS: EvolutionWebhookEvent[] = [
+	"MESSAGES_UPSERT",
+	"CONNECTION_UPDATE",
+];

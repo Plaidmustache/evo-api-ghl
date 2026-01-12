@@ -1,19 +1,30 @@
-# [GREEN-API](https://green-api.com/en) Integration with [GoHighLevel](https://www.gohighlevel.com)
+# [Evolution API](https://evolution-api.com) Integration with [GoHighLevel](https://www.gohighlevel.com)
 
 This integration enables WhatsApp communication within [GoHighLevel](https://www.gohighlevel.com) (GHL) using
-the [GREEN-API](https://green-api.com/en) platform. Built on
-the [Universal Integration Platform](https://github.com/green-api/greenapi-integration)
-by [GREEN-API](https://green-api.com/en), it consists of a
+the [Evolution API](https://evolution-api.com) platform. It consists of a
 NestJS adapter service that bridges the connection between the two platforms.
+
+## Self-Hosting Requirement
+
+**Important:** This integration requires you to have your own self-hosted [Evolution API](https://evolution-api.com) instance.
+Evolution API is an open-source WhatsApp API that you deploy and manage yourself.
+
+Before using this integration, you must:
+
+1. **Deploy Evolution API** - Set up your own Evolution API instance on your infrastructure
+2. **Configure WhatsApp Connection** - Connect your WhatsApp number(s) to your Evolution API instance
+3. **Obtain Instance Credentials** - Get your Instance ID and API Token from your Evolution API dashboard
+
+For Evolution API setup instructions, visit the [Evolution API documentation](https://doc.evolution-api.com).
 
 ## Overview
 
-This documentation guides you through setting up your own integration between [GREEN-API](https://green-api.com/en)
+This documentation guides you through setting up your own integration between [Evolution API](https://evolution-api.com)
 and [GoHighLevel](https://www.gohighlevel.com). You will:
 
 1. Create your own [GoHighLevel](https://www.gohighlevel.com) Marketplace app
 2. Configure and deploy the adapter service
-3. Link one or multiple [GREEN-API](https://green-api.com/en) instances with
+3. Link one or multiple [Evolution API](https://evolution-api.com) instances with
    your [GoHighLevel](https://www.gohighlevel.com)
    sub-account through an easy-to-use management interface
 
@@ -26,16 +37,16 @@ The NestJS application that:
 - Handles message mapping between [GoHighLevel](https://www.gohighlevel.com) and WhatsApp
 - Manages [GoHighLevel](https://www.gohighlevel.com) OAuth authentication and token management for sub-accounts
 - Provides webhook endpoints for both [GoHighLevel](https://www.gohighlevel.com)
-  and [GREEN-API](https://green-api.com/en)
+  and [Evolution API](https://evolution-api.com)
 - Creates and manages contacts from WhatsApp in [GoHighLevel](https://www.gohighlevel.com)
-- Supports multiple [GREEN-API](https://green-api.com/en) instances per sub-account with a user-friendly management
+- Supports multiple [Evolution API](https://evolution-api.com) instances per sub-account with a user-friendly management
   interface
 
 ## Prerequisites
 
 - MySQL database (5.7 or higher)
 - Node.js 20 or higher
-- [GREEN-API](https://green-api.com/en) account and instance(s)
+- A self-hosted [Evolution API](https://evolution-api.com) instance with connected WhatsApp number(s)
 - A [GoHighLevel](https://www.gohighlevel.com) **Developer Account**. You can create one
   at [https://marketplace.gohighlevel.com/](https://marketplace.gohighlevel.com/)
 - A [GoHighLevel](https://www.gohighlevel.com) **Sub-Account** for testing the app installation and functionality
@@ -78,7 +89,7 @@ Marketplace app:
 
 6. **Create a Conversation Provider:**
     - Navigate to "Conversation Provider" in the app settings
-    - Name: "[GREEN-API](https://green-api.com/en)" (or any name you prefer)
+    - Name: "Evolution API" (or any name you prefer)
     - Type: **SMS**
     - Delivery URL: `YOUR_APP_URL/webhooks/ghl` (same as webhook URL)
     - Check both "Is this a Custom Conversation Provider?" and "Always show this Conversation Provider?"
@@ -88,15 +99,15 @@ Marketplace app:
 7. **Configure Custom Page:**
     - Enable Custom Page functionality
     - Set Custom Page URL to: `YOUR_APP_URL/app/whatsapp`
-    - This will provide users with an interface to manage their GREEN-API instances
+    - This will provide users with an interface to manage their Evolution API instances
 
 ## Step 2: Setting Up the Adapter
 
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/green-api/greenapi-integration-gohighlevel.git
-   cd greenapi-integration-gohighlevel
+   git clone https://github.com/EvolutionAPI/evo-api-ghl.git
+   cd evo-api-ghl
    ```
 
 2. **Install dependencies:**
@@ -224,20 +235,20 @@ install and use the integration:
     - Click "Install" on your app's page and then "Allow and Install"
 
 2. **Access the WhatsApp Instance Management Interface:**
-    - After installation, you can go to the custom page to manage your GREEN-API instances (will appear in the side
+    - After installation, you can go to the custom page to manage your Evolution API instances (will appear in the side
       panel)
     - The interface will allow you to add/manage multiple instances
 
-3. **Add GREEN-API Instances:**
-    - Use the management interface to add your GREEN-API instances
+3. **Add Evolution API Instances:**
+    - Use the management interface to add your Evolution API instances
     - For each instance, provide:
         - Instance Name (optional, for easy identification)
-        - Instance ID (from console.green-api.com)
-        - API Token (from console.green-api.com)
+        - Instance ID (from your Evolution API dashboard)
+        - API Token (from your Evolution API dashboard)
     - You can add multiple instances and manage them independently
 
 4. **Manage Your Instances:**
-    - View all your connected GREEN-API instances
+    - View all your connected Evolution API instances
     - Edit instance names
     - Delete instances when no longer needed
     - Monitor instance status and authorization state
@@ -246,10 +257,10 @@ install and use the integration:
 
 Once installed, the integration works automatically:
 
-### Incoming Messages (WhatsApp → GHL)
+### Incoming Messages (WhatsApp -> GHL)
 
 1. When a customer sends a message to any of your WhatsApp numbers:
-    - [GREEN-API](https://green-api.com/en) receives the message and sends it to your adapter
+    - [Evolution API](https://evolution-api.com) receives the message and sends it to your adapter
     - The adapter creates or updates the contact in GHL
     - The contact is tagged with the specific instance ID they contacted (You must not change this tag in any way)
     - The message appears in GHL's conversation interface
@@ -267,11 +278,11 @@ Once installed, the integration works automatically:
     - **Group "phone" numbers** are actually the group's chat ID (a long numeric identifier like `120363418570879210`)
     - **Group messages** show the sender's name and their phone number: `John Doe (+1234567890): Hello everyone!`
 
-### Outgoing Messages (GHL → WhatsApp)
+### Outgoing Messages (GHL -> WhatsApp)
 
 1. To reply to a WhatsApp contact:
     - Use GHL's standard messaging interface
-    - The message will be routed through your adapter to the appropriate [GREEN-API](https://green-api.com/en) instance
+    - The message will be routed through your adapter to the appropriate [Evolution API](https://evolution-api.com) instance
       based on the contact's tag
 
 2. Supported outgoing message types:
@@ -280,11 +291,11 @@ Once installed, the integration works automatically:
 
 ### Important Note
 
-**⚠️ Multi-Instance Conversations:** If the same phone number writes to multiple of your GREEN-API instances (different WhatsApp numbers),
+**Multi-Instance Conversations:** If the same phone number writes to multiple of your Evolution API instances (different WhatsApp numbers),
 this integration will **not** create separate conversations. All messages from that phone number, regardless of which
 instance they contact, will appear in a **single conversation thread**.
 
-**📱 Group Identification:** Group contacts can be easily identified by:
+**Group Identification:** Group contacts can be easily identified by:
 
 - Contact name starting with `[Group]`
 - Phone field containing a long numeric ID instead of a traditional phone number

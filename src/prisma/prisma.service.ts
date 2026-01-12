@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, NotFoundException } from "@nestjs/common";
+import { Injectable, OnModuleInit, NotFoundException, Logger } from "@nestjs/common";
 import {
 	InstanceState,
 	PrismaClient,
@@ -12,6 +12,7 @@ import { UserCreateData, UserUpdateData } from "../types";
 export class PrismaService
 	extends PrismaClient
 	implements OnModuleInit {
+	private readonly logger = new Logger(PrismaService.name);
 	async onModuleInit() {
 		await this.$connect();
 	}
@@ -61,14 +62,10 @@ export class PrismaService
 	async createInstance(instanceData: Prisma.InstanceCreateInput): Promise<Instance> {
 		const ghlLocationId = instanceData.user.connect?.id;
 		const stateInstance = instanceData.stateInstance;
-		const instanceName = instanceData.instanceName;
+		const idInstance = BigInt(instanceData.idInstance);
 
 		if (!ghlLocationId) {
 			throw new Error("userId (GHL Location ID as string) is required on the instance data to create an Instance.");
-		}
-
-		if (!instanceName) {
-			throw new Error("instanceName is required to create an Instance.");
 		}
 
 		const userExists = await this.user.findUnique({where: {id: ghlLocationId}});
@@ -77,18 +74,17 @@ export class PrismaService
 		}
 
 		const existingInstance = await this.instance.findUnique({
-			where: {instanceName},
+			where: {idInstance},
 		});
 
 		if (existingInstance) {
-			throw new Error(`Instance with name ${instanceName} already exists.`);
+			throw new Error(`Instance with ID ${idInstance} already exists.`);
 		}
 
 		return this.instance.create({
 			data: {
-				instanceName,
-				evolutionApiUrl: instanceData.evolutionApiUrl,
-				evolutionApiKey: instanceData.evolutionApiKey,
+				idInstance,
+				apiTokenInstance: instanceData.apiTokenInstance,
 				stateInstance: stateInstance || InstanceState.notAuthorized,
 				settings: instanceData.settings || {},
 				name: instanceData.name,
@@ -99,16 +95,9 @@ export class PrismaService
 		});
 	}
 
-	async getInstance(instanceName: string): Promise<(Instance & { user: User }) | null> {
+	async getInstance(idInstance: number | bigint): Promise<(Instance & { user: User }) | null> {
 		return this.instance.findUnique({
-			where: {instanceName},
-			include: {user: true},
-		});
-	}
-
-	async getInstanceByName(name: string): Promise<(Instance & { user: User }) | null> {
-		return this.instance.findFirst({
-			where: {name},
+			where: {idInstance: BigInt(idInstance)},
 			include: {user: true},
 		});
 	}
@@ -120,31 +109,38 @@ export class PrismaService
 		});
 	}
 
-	async removeInstance(instanceName: string): Promise<Instance> {
+	async removeInstance(idInstance: number | bigint): Promise<Instance> {
 		return this.instance.delete({
-			where: {instanceName},
+			where: {idInstance: BigInt(idInstance)},
 		});
 	}
 
-	async updateInstanceSettings(instanceName: string, settings: Record<string, unknown>): Promise<Instance> {
+	async updateInstanceSettings(idInstance: number | bigint, settings: Record<string, unknown>): Promise<Instance> {
 		return this.instance.update({
-			where: {instanceName},
+			where: {idInstance: BigInt(idInstance)},
 			data: {settings: settings || {}},
 		});
 	}
 
-	async updateInstanceState(instanceName: string, state: InstanceState): Promise<Instance> {
+	async updateInstanceState(idInstance: number | bigint, state: InstanceState): Promise<Instance> {
 		return this.instance.update({
-			where: {instanceName},
+			where: {idInstance: BigInt(idInstance)},
 			data: {stateInstance: state},
 		});
 	}
 
-	async updateInstanceName(instanceName: string, name: string): Promise<Instance & { user: User }> {
+	async updateInstanceName(idInstance: number | bigint, name: string): Promise<Instance & { user: User }> {
 		return this.instance.update({
-			where: {instanceName},
+			where: {idInstance: BigInt(idInstance)},
 			data: {name},
 			include: {user: true},
+		});
+	}
+
+	async getInstanceByName(name: string): Promise<(Instance & { user: User }) | null> {
+		return this.instance.findFirst({
+			where: { name },
+			include: { user: true },
 		});
 	}
 }

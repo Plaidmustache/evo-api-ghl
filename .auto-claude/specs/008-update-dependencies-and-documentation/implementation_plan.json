@@ -558,68 +558,10 @@
       ]
     }
   },
-  "qa_signoff": {
-    "status": "approved",
-    "qa_session": 2,
-    "issues_found": [],
-    "tests_passed": {},
-    "timestamp": "2026-01-11T21:46:15.444225+00:00",
-    "ready_for_qa_revalidation": false
-  },
+  "qa_signoff": null,
   "dependencies_note": "IMPORTANT: This task assumes that previous worktree changes (tasks 001-007) have been merged, providing Evolution API client, webhook guard, and type definitions. If those changes are not present, Phase 2 and 3 will need to create the Evolution API implementations rather than just cleaning up GREEN-API references.",
-  "last_updated": "2026-01-11T21:46:15.444246+00:00",
-  "status": "human_review",
-  "planStatus": "review",
-  "updated_at": "2026-01-11T23:00:58.911Z",
-  "qa_iteration_history": [
-    {
-      "iteration": 1,
-      "status": "rejected",
-      "timestamp": "2026-01-11T21:37:47.212021+00:00",
-      "issues": [
-        {
-          "type": "critical",
-          "title": "Missing getInstanceByName method in PrismaService",
-          "location": "src/prisma/prisma.service.ts",
-          "fix_required": "Add getInstanceByName method that is called by evolution-webhook.guard.ts line 37"
-        },
-        {
-          "type": "major",
-          "title": "Package.json author field still says GREEN-API",
-          "location": "package.json:5",
-          "fix_required": "Update author field from GREEN-API to Evolution API or appropriate value"
-        }
-      ],
-      "duration_seconds": 205.26
-    },
-    {
-      "iteration": 2,
-      "status": "rejected",
-      "timestamp": "2026-01-11T21:42:17.422434+00:00",
-      "issues": [
-        {
-          "description": "Critical: NestJS Logger.info() method does not exist - 10 occurrences in src/ghl/ghl.service.ts will cause runtime errors"
-        }
-      ],
-      "duration_seconds": 200.08
-    },
-    {
-      "iteration": 3,
-      "status": "approved",
-      "timestamp": "2026-01-11T21:46:25.537256+00:00",
-      "issues": [],
-      "duration_seconds": 189.36
-    }
-  ],
-  "qa_stats": {
-    "total_iterations": 3,
-    "last_iteration": 3,
-    "last_status": "approved",
-    "issues_by_type": {
-      "critical": 1,
-      "major": 1,
-      "unknown": 1
-    }
-  },
-  "recoveryNote": "Task recovered from stuck state at 2026-01-11T23:00:58.912Z"
+  "last_updated": "2026-01-11T21:33:41.057674+00:00",
+  "status": "in_progress",
+  "planStatus": "in_progress",
+  "updated_at": "2026-01-11T21:00:05.138Z"
 }

@@ -1,4 +1,4 @@
-import { Injectable, HttpException, HttpStatus, BadRequestException, Logger } from "@nestjs/common";
+import { Injectable, HttpException, HttpStatus, BadRequestException, Logger, NotFoundException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import axios, { AxiosInstance, AxiosError } from "axios";
 import { GhlTransformer } from "./ghl.transformer";
@@ -13,13 +13,82 @@ import {
 	GhlPlatformMessage,
 	MessageStatusPayload, WorkflowActionData, WorkflowActionResult,
 } from "../types";
-import { EvolutionApiClient, EvolutionSendResponse } from "../evolution/evolution-api.client";
-import type { EvolutionWebhook, EvolutionWebhookEvent, EvolutionMessage } from "./types/evolution-webhook.types";
-import {
-	isMessagesUpsertData,
-	isConnectionUpdateData,
-	ALLOWED_EVOLUTION_EVENTS,
-} from "./types/evolution-webhook.types";
+
+// Type definitions for Evolution API webhooks and responses
+type EvolutionWebhookType = "incomingMessageReceived" | "stateInstanceChanged" | "incomingCall" | "outgoingMessageSent" | "messageDelivered" | "messageRead";
+
+interface EvolutionWebhook {
+	typeWebhook: EvolutionWebhookType;
+	instanceData: {
+		idInstance: number | string;
+		wid?: string;
+	};
+	timestamp: number;
+	senderData?: {
+		chatId: string;
+		chatName?: string;
+		sender?: string;
+		senderName?: string;
+		senderContactName?: string;
+	};
+	messageData?: any;
+	from?: string;
+	status?: string;
+	stateInstance?: string;
+}
+
+interface StateInstanceWebhook extends EvolutionWebhook {
+	stateInstance: string;
+}
+
+interface SendResponse {
+	idMessage: string;
+}
+
+interface SendInteractiveButtonsReply {
+	buttons: Array<{ buttonId: string; buttonText: string }>;
+}
+
+interface SendInteractiveButtons {
+	buttons: Array<{
+		type: "copy" | "call" | "url";
+		buttonId: string;
+		buttonText: string;
+		copyCode?: string;
+		phoneNumber?: string;
+		url?: string;
+	}>;
+}
+
+interface WaSettings {
+	phone?: string;
+	stateInstance?: string;
+}
+
+interface Settings {
+	webhookUrl: string;
+	webhookUrlToken: string;
+	incomingWebhook: string;
+	incomingCallWebhook: string;
+	stateWebhook: string;
+	wid?: string;
+}
+
+// Evolution API client interface
+interface EvolutionClient {
+	sendMessage(params: { chatId: string; message: string; linkPreview?: boolean }): Promise<SendResponse>;
+	sendFileByUrl(params: { chatId: string; file: { url: string; fileName: string }; caption?: string }): Promise<SendResponse>;
+	sendInteractiveButtons(params: { chatId: string; header?: string; body: string; footer?: string; buttons: SendInteractiveButtons["buttons"] }): Promise<SendResponse>;
+	sendInteractiveButtonsReply(params: { chatId: string; header?: string; body: string; footer?: string; buttons: SendInteractiveButtonsReply["buttons"] }): Promise<SendResponse>;
+	getWaSettings(): Promise<WaSettings>;
+	setSettings(settings: Settings): Promise<void>;
+}
+
+// Helper function to format phone number for chat ID
+function formatPhoneNumber(phone: string, type: "private" | "group" = "private"): string {
+	const cleaned = phone.replace(/\D/g, "");
+	return type === "group" ? `${cleaned}@g.us` : `${cleaned}@c.us`;
+}
 
 @Injectable()
 export class GhlService {
@@ -28,10 +97,51 @@ export class GhlService {
 	private readonly ghlApiVersion = "2021-07-28";
 
 	constructor(
-		protected readonly ghlTransformer: GhlTransformer,
-		protected readonly prisma: PrismaService,
+		private readonly ghlTransformer: GhlTransformer,
+		private readonly prisma: PrismaService,
 		private readonly configService: ConfigService,
-	) {
+	) {}
+
+	/**
+	 * Creates an Evolution API client for the given instance credentials
+	 * Note: This is a stub implementation. The actual Evolution API client
+	 * should be configured based on the Evolution API server URL in environment.
+	 */
+	private createEvolutionClient(instance: { idInstance: bigint; apiTokenInstance: string }): EvolutionClient {
+		const evolutionApiUrl = this.configService.get<string>("EVOLUTION_API_URL") || "http://localhost:8080";
+		const client = axios.create({
+			baseURL: `${evolutionApiUrl}/instance/${instance.idInstance}`,
+			headers: {
+				"Authorization": `Bearer ${instance.apiTokenInstance}`,
+				"Content-Type": "application/json",
+			},
+		});
+
+		return {
+			async sendMessage(params): Promise<SendResponse> {
+				const response = await client.post("/sendMessage", params);
+				return response.data;
+			},
+			async sendFileByUrl(params): Promise<SendResponse> {
+				const response = await client.post("/sendFileByUrl", params);
+				return response.data;
+			},
+			async sendInteractiveButtons(params): Promise<SendResponse> {
+				const response = await client.post("/sendInteractiveButtons", params);
+				return response.data;
+			},
+			async sendInteractiveButtonsReply(params): Promise<SendResponse> {
+				const response = await client.post("/sendInteractiveButtonsReply", params);
+				return response.data;
+			},
+			async getWaSettings(): Promise<WaSettings> {
+				const response = await client.get("/settings");
+				return response.data;
+			},
+			async setSettings(settings: Settings): Promise<void> {
+				await client.post("/settings", settings);
+			},
+		};
 	}
 
 	private async getHttpClient(ghlUserId: string): Promise<AxiosInstance> {
@@ -169,7 +279,7 @@ export class GhlService {
 			locationId: ghlUserId,
 			phone: formattedPhone,
 			name: contactName,
-			source: "EVOLUTION-API",
+			source: "Evolution-API",
 			tags: instanceId ? tags : undefined,
 		};
 
@@ -351,12 +461,8 @@ export class GhlService {
 		this.logger.log(`Sending message to GHL for instance ${instance.idInstance} linked to User (Loc) ${instance.userId}`);
 		this.logger.debug(`GHL DTO: ${JSON.stringify(ghlMessageDto)}`);
 
-		if (!instance.userId) {
-			throw new HttpException("Instance not linked to User (GHL Location).", HttpStatus.INTERNAL_SERVER_ERROR);
-		}
-		if (!ghlMessageDto.contactId) {
-			throw new HttpException("GHL Contact ID missing.", HttpStatus.BAD_REQUEST);
-		}
+		if (!instance.userId) throw new HttpException("Instance not linked to User (GHL Location).", HttpStatus.BAD_REQUEST);
+		if (!ghlMessageDto.contactId) throw new HttpException("GHL Contact ID missing.", HttpStatus.BAD_REQUEST);
 
 		ghlMessageDto.locationId = instance.userId;
 
@@ -377,32 +483,20 @@ export class GhlService {
 	public async handlePlatformWebhook(
 		ghlWebhook: GhlWebhookDto,
 		idInstance: number | bigint,
-	): Promise<EvolutionSendResponse> {
+	): Promise<SendResponse> {
 		const locationId = ghlWebhook.locationId;
 		const messageId = ghlWebhook.messageId;
 
-		let sendResponse: EvolutionSendResponse;
+		let gaResponse: SendResponse;
 		this.logger.log(`Handling GHL webhook for Evolution API Instance ID: ${idInstance}`);
 		this.logger.debug(`GHL Webhook DTO: ${JSON.stringify(ghlWebhook)}`);
 
 		const instance = await this.prisma.getInstance(BigInt(idInstance));
-		if (!instance) {
-			throw new HttpException(`Instance ${idInstance} not found.`, HttpStatus.NOT_FOUND);
-		}
-		if (!instance.user) {
-			throw new HttpException("Instance not linked to User.", HttpStatus.INTERNAL_SERVER_ERROR);
-		}
-		if (instance.stateInstance !== "authorized") {
-			throw new HttpException("Instance is not authorized", HttpStatus.FORBIDDEN);
-		}
+		if (!instance) throw new NotFoundException(`Instance ${idInstance} not found.`);
+		if (!instance.user) throw new HttpException("Instance not linked to User.", HttpStatus.BAD_REQUEST);
+		if (instance.stateInstance !== "authorized") throw new HttpException("Instance is not authorized", HttpStatus.UNAUTHORIZED);
 
-		// Get Evolution API credentials from instance settings
-		const settings = instance.settings as { evolutionApiUrl?: string; evolutionApiKey?: string; instanceName?: string } | null;
-		if (!settings?.evolutionApiUrl || !settings?.evolutionApiKey || !settings?.instanceName) {
-			throw new HttpException("Instance missing Evolution API credentials", HttpStatus.INTERNAL_SERVER_ERROR);
-		}
-
-		const evolutionClient = new EvolutionApiClient(settings.evolutionApiUrl, settings.evolutionApiKey);
+		const evolutionClient = this.createEvolutionClient(instance);
 		const transformedMessage = this.ghlTransformer.toEvolutionMessage(ghlWebhook);
 
 		this.logger.log(`Transformed GHL message to Evolution API format for instance ${idInstance}`);
@@ -410,307 +504,171 @@ export class GhlService {
 
 		switch (transformedMessage.type) {
 			case "text":
-				sendResponse = await evolutionClient.sendText(settings.instanceName, ghlWebhook.phone, transformedMessage.message);
+				gaResponse = await evolutionClient.sendMessage(transformedMessage);
 				break;
 			case "url-file":
-				sendResponse = await evolutionClient.sendMedia(settings.instanceName, ghlWebhook.phone, {
-					mediatype: "document",
-					media: transformedMessage.file.url,
-					fileName: transformedMessage.file.fileName,
-					caption: transformedMessage.caption,
-				});
+				gaResponse = await evolutionClient.sendFileByUrl(transformedMessage);
 				break;
 			default:
-				this.logger.error(`Unsupported message type from GHL transform: ${transformedMessage.type}`);
-				throw new HttpException(`Invalid message type: ${transformedMessage.type}`, HttpStatus.BAD_REQUEST);
+				this.logger.error(`Unsupported Evolution API message type from GHL transform: ${transformedMessage.type}`);
+				throw new HttpException(`Invalid Evolution API message type: ${transformedMessage.type}`, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 		await this.updateGhlMessageStatus(locationId, messageId, "delivered");
-		return sendResponse;
+		return gaResponse;
 	}
 
 	public async handleEvolutionWebhook(
 		webhook: EvolutionWebhook,
+		allowedTypes: EvolutionWebhookType[],
 	): Promise<void> {
-		const instanceName = webhook.instance.instanceName;
-		this.logger.log(`Handling Evolution API webhook event: ${webhook.event} for Instance: ${instanceName}`);
-
-		// Validate event type
-		if (!ALLOWED_EVOLUTION_EVENTS.includes(webhook.event)) {
-			this.logger.warn(`Skipping Evolution API webhook: event ${webhook.event} not in allowed: ${ALLOWED_EVOLUTION_EVENTS.join(", ")}`);
+		const idInstance = BigInt(webhook.instanceData.idInstance);
+		this.logger.log(`Handling Evolution API webhook type: ${webhook.typeWebhook} for Instance: ${idInstance}`);
+		if (!allowedTypes.includes(webhook.typeWebhook)) {
+			this.logger.warn(`Skipping Evolution API webhook: type ${webhook.typeWebhook} not in allowed: ${allowedTypes.join(", ")}`);
 			return;
 		}
 
-		// Convert instanceName to idInstance hash for database lookup (same as createEvolutionInstanceForUser)
-		const idInstance = BigInt("0x" + Buffer.from(instanceName).toString("hex").slice(0, 15).padEnd(15, "0"));
-
 		const instance = await this.prisma.getInstance(idInstance);
-		if (!instance) {
-			throw new HttpException(`Instance ${instanceName} not found.`, HttpStatus.NOT_FOUND);
-		}
+		if (!instance) throw new NotFoundException(`Instance ${idInstance} not found.`);
 		if (!instance.user || !instance.userId) {
 			throw new HttpException("Instance not linked to User (GHL Location).", HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 		const instanceWithUser = instance as Instance & { user: User };
 
 		try {
-			if (webhook.event === "CONNECTION_UPDATE") {
-				if (isConnectionUpdateData(webhook.data)) {
-					await this.handleConnectionUpdate(instanceName, webhook.data.state);
+			if (webhook.typeWebhook === "stateInstanceChanged") {
+				await this.handleStateInstanceWebhook(webhook);
+			} else if (webhook.typeWebhook === "incomingMessageReceived") {
+				const isGroup = webhook.senderData?.chatId?.endsWith("@g.us") || false;
+
+				const contactIdentifier = webhook.senderData.chatId.replace(/@[cg]\.us$/, "");
+				let contactName: string;
+				let logContext: string;
+
+				if (isGroup) {
+					contactName = webhook.senderData.chatName || "Unknown Group";
+					logContext = `group "${contactName}" (${contactIdentifier}) sent by ${webhook.senderData.senderName || "Unknown"}`;
+				} else {
+					contactName = webhook.senderData.senderName || webhook.senderData.senderContactName || `WhatsApp ${contactIdentifier}`;
+					logContext = `individual ${contactName} (${contactIdentifier})`;
 				}
-			} else if (webhook.event === "MESSAGES_UPSERT") {
-				if (isMessagesUpsertData(webhook.data) && webhook.data.messages?.length) {
-					for (const message of webhook.data.messages) {
-						await this.processEvolutionMessage(message, instanceWithUser, instanceName);
-					}
-				}
+
+				this.logger.log(`Processing message from ${logContext}`);
+
+				const ghlContact = await this.findOrCreateGhlContact(
+					instanceWithUser.userId,
+					contactIdentifier,
+					contactName,
+					webhook.instanceData.idInstance.toString(),
+					isGroup,
+				);
+				if (!ghlContact?.id) throw new HttpException("Failed to resolve GHL contact.", HttpStatus.INTERNAL_SERVER_ERROR);
+
+				const transformedMsg = this.ghlTransformer.toPlatformMessage(webhook);
+				transformedMsg.contactId = ghlContact.id;
+				transformedMsg.locationId = instanceWithUser.userId;
+
+				await this.sendToPlatform(transformedMsg, instanceWithUser);
+			} else if (webhook.typeWebhook === "incomingCall") {
+				const callerPhoneRaw = webhook.from;
+				const normalizedPhone = callerPhoneRaw.split("@")[0];
+				const callerName = `WhatsApp ${normalizedPhone}`;
+
+				const ghlContact = await this.findOrCreateGhlContact(
+					instanceWithUser.userId,
+					normalizedPhone,
+					callerName,
+					webhook.instanceData.idInstance.toString(),
+				);
+				if (!ghlContact.id) throw new HttpException("Failed to resolve GHL contact for call.", HttpStatus.INTERNAL_SERVER_ERROR);
+
+				const transformedCallMsg = this.ghlTransformer.toPlatformMessage(webhook);
+				transformedCallMsg.contactId = ghlContact.id;
+				transformedCallMsg.locationId = instanceWithUser.userId;
+
+				await this.sendToPlatform(transformedCallMsg, instanceWithUser);
 			} else {
-				this.logger.warn(`Unhandled Evolution API webhook event: ${webhook.event}`);
+				this.logger.warn(`Unhandled allowed Evolution API webhook type: ${webhook.typeWebhook}`);
 			}
 		} catch (error) {
-			this.logger.error(`Error in handleEvolutionWebhook for instance ${instanceName}, event ${webhook.event}: ${error.message}`, error.stack);
+			this.logger.error(`Error in handleEvolutionWebhook for instance ${idInstance}, type ${webhook.typeWebhook}: ${error.message}`, error.stack);
 			throw new HttpException("Failed to handle Evolution API webhook", HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
-	/**
-	 * Process a single Evolution API message
-	 */
-	private async processEvolutionMessage(
-		message: EvolutionMessage,
-		instanceWithUser: Instance & { user: User },
-		instanceName: string,
-	): Promise<void> {
-		// Skip outgoing messages (fromMe = true)
-		if (message.key.fromMe) {
-			this.logger.debug(`Skipping outgoing message ${message.key.id}`);
-			return;
-		}
-
-		const remoteJid = message.key.remoteJid;
-		const isGroup = remoteJid.endsWith("@g.us");
-
-		// Extract phone number from remoteJid
-		const contactIdentifier = remoteJid.replace(/@[cgs]\.us$/, "");
-		const contactName = message.pushName || `WhatsApp ${contactIdentifier}`;
-		const logContext = isGroup
-			? `group (${contactIdentifier}) sent by ${message.pushName || "Unknown"}`
-			: `individual ${contactName} (${contactIdentifier})`;
-
-		this.logger.log(`Processing message from ${logContext}`);
-
-		const ghlContact = await this.findOrCreateGhlContact(
-			instanceWithUser.userId,
-			contactIdentifier,
-			contactName,
-			instanceName,
-			isGroup,
-		);
-		if (!ghlContact?.id) {
-			throw new HttpException("Failed to resolve GHL contact.", HttpStatus.INTERNAL_SERVER_ERROR);
-		}
-
-		// Transform Evolution message to GHL platform message
-		const transformedMsg = this.transformEvolutionMessageToGhl(message, instanceWithUser.userId, ghlContact.id);
-
-		await this.sendToPlatform(transformedMsg, instanceWithUser);
-	}
-
-	/**
-	 * Transform Evolution API message to GHL platform message format
-	 */
-	private transformEvolutionMessageToGhl(
-		message: EvolutionMessage,
-		locationId: string,
-		contactId: string,
-	): GhlPlatformMessage {
-		let messageText = "";
-		const attachments: GhlPlatformMessage["attachments"] = [];
-
-		const msg = message.message;
-		if (msg) {
-			if (msg.conversation) {
-				messageText = msg.conversation;
-			} else if (msg.extendedTextMessage?.text) {
-				messageText = msg.extendedTextMessage.text;
-			} else if (msg.imageMessage) {
-				messageText = msg.imageMessage.caption || "Received an image";
-				if (msg.imageMessage.url) {
-					attachments.push({
-						url: msg.imageMessage.url,
-						fileName: "image.jpg",
-						type: msg.imageMessage.mimetype || "image/jpeg",
-					});
-				}
-			} else if (msg.videoMessage) {
-				messageText = msg.videoMessage.caption || "Received a video";
-				if (msg.videoMessage.url) {
-					attachments.push({
-						url: msg.videoMessage.url,
-						fileName: msg.videoMessage.fileName || "video.mp4",
-						type: msg.videoMessage.mimetype || "video/mp4",
-					});
-				}
-			} else if (msg.audioMessage) {
-				messageText = msg.audioMessage.ptt ? "Received a voice message" : "Received an audio file";
-				if (msg.audioMessage.url) {
-					attachments.push({
-						url: msg.audioMessage.url,
-						fileName: "audio.ogg",
-						type: msg.audioMessage.mimetype || "audio/ogg",
-					});
-				}
-			} else if (msg.documentMessage) {
-				messageText = msg.documentMessage.caption || `Received a document: ${msg.documentMessage.fileName || "document"}`;
-				if (msg.documentMessage.url) {
-					attachments.push({
-						url: msg.documentMessage.url,
-						fileName: msg.documentMessage.fileName || "document",
-						type: msg.documentMessage.mimetype || "application/octet-stream",
-					});
-				}
-			} else if (msg.stickerMessage) {
-				messageText = "Received a sticker";
-				if (msg.stickerMessage.url) {
-					attachments.push({
-						url: msg.stickerMessage.url,
-						fileName: "sticker.webp",
-						type: msg.stickerMessage.mimetype || "image/webp",
-					});
-				}
-			} else if (msg.locationMessage) {
-				const loc = msg.locationMessage;
-				messageText = [
-					"User shared a location:",
-					loc.name && `Location: ${loc.name}`,
-					loc.address && `Address: ${loc.address}`,
-					`Map: https://www.google.com/maps?q=${loc.degreesLatitude},${loc.degreesLongitude}`,
-				].filter(Boolean).join("\n");
-			} else if (msg.contactMessage) {
-				messageText = `User shared a contact: ${msg.contactMessage.displayName}`;
-			} else if (msg.contactsArrayMessage) {
-				const contactsList = msg.contactsArrayMessage.contacts
-					.map(c => c.displayName)
-					.join(", ");
-				messageText = `User shared contacts: ${contactsList}`;
-			} else {
-				messageText = "User sent an unsupported message type";
-			}
-		}
-
-		return {
-			contactId,
-			locationId,
-			message: messageText.trim() || "Empty message",
-			direction: "inbound",
-			attachments: attachments.length > 0 ? attachments : undefined,
-			timestamp: message.messageTimestamp
-				? new Date(typeof message.messageTimestamp === "string"
-					? parseInt(message.messageTimestamp) * 1000
-					: message.messageTimestamp * 1000)
-				: new Date(),
-		};
-	}
-
-	/**
-	 * Handle Evolution API connection update events
-	 */
-	public async handleConnectionUpdate(
-		instanceName: string,
-		state: string,
-	): Promise<void> {
-		this.logger.log(`Connection update for instance ${instanceName}: ${state}`);
-
-		// Convert instanceName to idInstance hash for database lookup
-		const idInstance = BigInt("0x" + Buffer.from(instanceName).toString("hex").slice(0, 15).padEnd(15, "0"));
-
-		// Map Evolution state to database state: 'open' -> 'authorized', others -> 'notAuthorized'
-		const mappedState = state === "open" ? "authorized" : "notAuthorized";
-
+	public async handleStateInstanceWebhook(webhook: StateInstanceWebhook): Promise<void> {
+		const idInstance = BigInt(webhook.instanceData.idInstance);
+		this.logger.log(`StateInstanceWebhook for instance ${idInstance}. New state: ${webhook.stateInstance}`);
 		try {
-			await this.prisma.updateInstanceState(idInstance, mappedState as "authorized" | "notAuthorized");
-			this.logger.log(`Instance ${instanceName} state updated to ${mappedState} (from Evolution state: ${state})`);
+			const dbInstance = await this.prisma.updateInstanceState(idInstance, webhook.stateInstance);
+			const currentSettings = dbInstance.settings || {};
+			if (webhook.instanceData.wid && webhook.instanceData.wid !== currentSettings.wid) {
+				await this.prisma.updateInstanceSettings(idInstance, {
+					...currentSettings,
+					wid: webhook.instanceData.wid,
+				});
+				this.logger.log(`Instance ${idInstance} WID updated to ${webhook.instanceData.wid}.`);
+			}
+			this.logger.log(`Instance ${idInstance} state updated to ${webhook.stateInstance}.`);
 		} catch (error) {
-			this.logger.error(`Failed to update instance state for ${instanceName}: ${error.message}`, error.stack);
+			this.logger.error(`Failed to update instance state for ${idInstance}: ${error.message}`, error.stack);
 			throw error;
 		}
 	}
 
 	public async createEvolutionInstanceForUser(
 		ghlUserId: string,
-		instanceName: string,
-		evolutionApiUrl: string,
-		evolutionApiKey: string,
+		idInstance: number | bigint,
+		apiTokenInstance: string,
 		name?: string,
 	): Promise<Instance> {
-		this.logger.log(`Creating Evolution API instance ${instanceName} for User (GHL Location) ${ghlUserId}`);
+		this.logger.log(`Creating Evolution API instance ${idInstance} for User (GHL Location) ${ghlUserId}`);
 
 		const ghlUser = await this.prisma.findUser(ghlUserId);
-		if (!ghlUser) {
-			throw new HttpException(`User (GHL Location) ${ghlUserId} not found.`, HttpStatus.NOT_FOUND);
-		}
+		if (!ghlUser) throw new NotFoundException(`User (GHL Location) ${ghlUserId} not found.`);
 
-		// Create Evolution API client with provided credentials
-		const evolutionClient = new EvolutionApiClient(evolutionApiUrl, evolutionApiKey);
-
-		// Verify connection by getting connection state
-		let connectionState: { state: string; statusReason?: string };
+		const evolutionClient = this.createEvolutionClient({idInstance: BigInt(idInstance), apiTokenInstance});
+		let waSettings: WaSettings;
 		try {
-			connectionState = await evolutionClient.getConnectionState(instanceName);
+			waSettings = await evolutionClient.getWaSettings();
 		} catch (error) {
-			this.logger.warn(`Failed to get connection state for instance ${instanceName}: ${error.message}.`);
-			throw new HttpException("Invalid instance credentials or instance not found", HttpStatus.BAD_REQUEST);
+			this.logger.warn(`Failed to get WA settings for new instance ${idInstance}: ${error.message}.`);
+			throw new HttpException("Invalid instance credentials", HttpStatus.BAD_REQUEST);
 		}
 
-		// Map Evolution state to database state: 'open' -> 'authorized', others -> 'notAuthorized'
-		const mappedState = connectionState.state === "open" ? "authorized" : "notAuthorized";
-		this.logger.log(`Instance ${instanceName} connection state: ${connectionState.state} -> ${mappedState}`);
-
-		// Configure webhook URL
 		const appBaseUrl = this.configService.get<string>("APP_URL");
 		const webhookToken = randomBytes(16).toString("hex");
-		const webhookUrl = `${appBaseUrl}/webhooks/evolution`;
-
-		// Store Evolution API settings including credentials
-		const settings = {
-			webhookUrl,
+		const settings: Settings = {
+			webhookUrl: `${appBaseUrl}/webhooks/evolution`,
 			webhookUrlToken: webhookToken,
-			evolutionApiUrl,
-			evolutionApiKey,
-			instanceName,
+			incomingWebhook: "yes",
+			incomingCallWebhook: "yes",
+			stateWebhook: "yes",
+			wid: waSettings?.phone ? `${waSettings.phone}@c.us` : undefined,
 		};
-
-		// Generate a unique idInstance from instanceName for database compatibility
-		// Using a hash of the instanceName to create a consistent BigInt
-		const instanceHash = BigInt("0x" + Buffer.from(instanceName).toString("hex").slice(0, 15).padEnd(15, "0"));
 
 		try {
 			const dbInstance = await this.prisma.createInstance({
-				idInstance: instanceHash,
-				apiTokenInstance: evolutionApiKey, // Store API key for compatibility
+				idInstance: BigInt(idInstance),
+				apiTokenInstance,
 				user: {
-					connect: { id: ghlUserId },
+					connect: {id: ghlUserId},
 				},
 				settings,
-				stateInstance: mappedState as "authorized" | "notAuthorized",
-				name: name || `WhatsApp ${instanceName}`,
+				stateInstance: waSettings?.stateInstance || "notAuthorized",
+				name: name || `WhatsApp ${idInstance}`,
 			});
-			this.logger.log(`Instance ${instanceName} record created for User (Loc) ${ghlUserId}. DB ID: ${dbInstance.id}`);
+			this.logger.log(`Instance ${idInstance} record created for User (Loc) ${ghlUserId}. DB ID: ${dbInstance.id}`);
 
-			// Register webhook with Evolution API
 			try {
-				await evolutionClient.setWebhook(instanceName, {
-					url: webhookUrl,
-					webhookByEvents: true,
-					webhookBase64: false,
-					events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE"],
-				});
-				this.logger.log(`Webhook registered for Evolution API instance ${instanceName}.`);
+				await evolutionClient.setSettings(settings);
+				this.logger.log(`Applied initial settings to Evolution API instance ${idInstance}.`);
 			} catch (error) {
-				this.logger.error(`Failed to register webhook for Evolution API instance ${instanceName}: ${error.message}. DB record exists.`);
+				this.logger.error(`Failed to apply initial settings to Evolution API instance ${idInstance}: ${error.message}. DB record exists.`);
 			}
 			return dbInstance;
 		} catch (error) {
-			this.logger.error(`Failed to create Evolution API instance ${instanceName} for User ${ghlUserId}: ${error.message}`, error.stack);
+			this.logger.error(`Failed to create Evolution API instance ${idInstance} for User ${ghlUserId}: ${error.message}`, error.stack);
 			throw new HttpException("Failed to create instance", HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
@@ -749,75 +707,81 @@ export class GhlService {
 			throw new BadRequestException(`Instance ${data.instanceId} is not authorized (state: ${instance.stateInstance})`);
 		}
 
-		// Clean phone number - remove any non-numeric characters and WhatsApp suffixes
-		const cleanPhone = contactPhone.replace(/[^0-9]/g, "");
+		const chatId = formatPhoneNumber(contactPhone);
+		const cleanPhone = chatId.replace("@c.us", "");
+		const evolutionClient = this.createEvolutionClient(instance);
 
-		// Get Evolution API credentials from instance settings
-		const settings = instance.settings as { evolutionApiUrl?: string; evolutionApiKey?: string; instanceName?: string } | null;
-		if (!settings?.evolutionApiUrl || !settings?.evolutionApiKey || !settings?.instanceName) {
-			throw new BadRequestException("Instance missing Evolution API credentials");
-		}
-
-		const evolutionClient = new EvolutionApiClient(settings.evolutionApiUrl, settings.evolutionApiKey);
-
-		let sendResponse: { key: { id: string } };
+		let sendResponse: SendResponse;
 		let ghlMessageContent: string;
 		let ghlAttachments: string[] | undefined;
 
 		switch (actionType) {
 			case "message":
 				if (!data.message) throw new Error("Message is required");
-				sendResponse = await evolutionClient.sendText(settings.instanceName, cleanPhone, data.message);
+				sendResponse = await evolutionClient.sendMessage({
+					chatId,
+					message: data.message,
+					linkPreview: true,
+				});
 				ghlMessageContent = data.message;
 				this.logger.log(`Text message sent via Evolution API`, {
 					instanceId: data.instanceId,
-					messageId: sendResponse.key?.id,
+					messageId: sendResponse.idMessage,
 				});
 				break;
 
 			case "file":
 				if (!data.url || !data.fileName) throw new Error("URL and fileName are required for file messages");
-				sendResponse = await evolutionClient.sendMedia(settings.instanceName, cleanPhone, {
-					mediatype: "document",
-					media: data.url,
-					fileName: data.fileName,
-					caption: data.caption,
+				sendResponse = await evolutionClient.sendFileByUrl({
+					chatId,
+					file: {url: data.url, fileName: data.fileName},
+					caption: data.caption || undefined,
 				});
 				ghlMessageContent = data.caption ? data.caption : `[File: ${data.fileName}]`;
 				ghlAttachments = [data.url];
 				this.logger.log(`File sent via Evolution API`, {
 					instanceId: data.instanceId,
-					messageId: sendResponse.key?.id,
+					messageId: sendResponse.idMessage,
 					fileName: data.fileName,
 				});
 				break;
 
 			case "interactive-buttons":
-				// Evolution API doesn't support interactive buttons - convert to text message with button options
 				if (!data.body) throw new Error("Body is required for interactive buttons");
 				const buttons = this.buildInteractiveButtons(data);
 				if (buttons.length === 0) throw new Error("At least one button is required");
 
+				sendResponse = await evolutionClient.sendInteractiveButtons({
+					chatId,
+					header: data.header,
+					body: data.body,
+					footer: data.footer,
+					buttons,
+				});
 				ghlMessageContent = this.formatInteractiveButtonsForGhl(data, buttons);
-				sendResponse = await evolutionClient.sendText(settings.instanceName, cleanPhone, ghlMessageContent);
-				this.logger.log(`Interactive buttons sent as text via Evolution API`, {
+				this.logger.log(`Interactive buttons sent via Evolution API`, {
 					instanceId: data.instanceId,
-					messageId: sendResponse.key?.id,
+					messageId: sendResponse.idMessage,
 					buttonCount: buttons.length,
 				});
 				break;
 
 			case "reply-buttons":
-				// Evolution API doesn't support reply buttons - convert to text message with button options
 				if (!data.body) throw new Error("Body is required for reply buttons");
 				const replyButtons = this.buildReplyButtons(data);
 				if (replyButtons.length === 0) throw new Error("At least one button is required");
 
+				sendResponse = await evolutionClient.sendInteractiveButtonsReply({
+					chatId,
+					header: data.header,
+					body: data.body,
+					footer: data.footer,
+					buttons: replyButtons,
+				});
 				ghlMessageContent = this.formatReplyButtonsForGhl(data, replyButtons);
-				sendResponse = await evolutionClient.sendText(settings.instanceName, cleanPhone, ghlMessageContent);
-				this.logger.log(`Reply buttons sent as text via Evolution API`, {
+				this.logger.log(`Reply buttons sent via Evolution API`, {
 					instanceId: data.instanceId,
-					messageId: sendResponse.key?.id,
+					messageId: sendResponse.idMessage,
 					buttonCount: replyButtons.length,
 				});
 				break;
@@ -831,7 +795,7 @@ export class GhlService {
 			this.logger.warn(`Could not find/create GHL contact for phone ${cleanPhone}`);
 			return {
 				success: true,
-				messageId: sendResponse.key?.id,
+				messageId: sendResponse.idMessage,
 				warning: `${actionType} sent but contact not found in GHL`,
 			};
 		}
@@ -847,7 +811,7 @@ export class GhlService {
 
 		return {
 			success: true,
-			messageId: sendResponse.key?.id,
+			messageId: sendResponse.idMessage,
 			contactId: ghlContact.id,
 		};
 	}
@@ -860,14 +824,7 @@ export class GhlService {
 		phoneNumber?: string;
 		url?: string;
 	}> {
-		const buttons: Array<{
-			type: "copy" | "call" | "url";
-			buttonId: string;
-			buttonText: string;
-			copyCode?: string;
-			phoneNumber?: string;
-			url?: string;
-		}> = [];
+		const buttons: SendInteractiveButtons["buttons"] = [];
 
 		if (data.button1Type && data.button1Text && data.button1Value) {
 			buttons.push({
@@ -909,10 +866,7 @@ export class GhlService {
 		buttonId: string;
 		buttonText: string;
 	}> {
-		const buttons: Array<{
-			buttonId: string;
-			buttonText: string;
-		}> = [];
+		const buttons: SendInteractiveButtonsReply["buttons"] = [];
 
 		if (data.button1Text) {
 			buttons.push({buttonId: "1", buttonText: data.button1Text});

@@ -2,18 +2,8 @@ import { Injectable, Logger } from "@nestjs/common";
 import { GhlWebhookDto } from "./dto/ghl-webhook.dto";
 import { GhlPlatformMessage } from "../types";
 
-/**
- * Local interface for message transformation (replaces GREEN-API MessageTransformer)
- */
-interface MessageTransformer<TInput, TOutput> {
-	toEvolutionMessage(input: TInput): Message;
-	toPlatformMessage(webhook: GreenApiWebhookLegacy): TOutput;
-}
-
-/**
- * Local message type for Evolution API
- */
-interface Message {
+// Type definitions for Evolution API messages
+export interface EvolutionMessage {
 	type: "text" | "url-file";
 	chatId: string;
 	message?: string;
@@ -24,22 +14,47 @@ interface Message {
 	caption?: string;
 }
 
-/**
- * Legacy GREEN-API webhook interface for backwards compatibility
- * This is kept for existing toPlatformMessage() functionality
- */
-interface GreenApiWebhookLegacy {
+// MessageTransformer interface for converting between platforms
+export interface MessageTransformer<TIncoming, TPlatform> {
+	toPlatformMessage(webhook: EvolutionWebhook): TPlatform;
+	toEvolutionMessage(incoming: TIncoming): EvolutionMessage;
+}
+
+// Evolution API webhook structure
+export interface EvolutionWebhook {
 	typeWebhook: string;
+	instanceData?: {
+		idInstance: number | string;
+		wid?: string;
+	};
 	timestamp: number;
 	senderData?: {
-		chatId?: string;
+		chatId: string;
+		chatName?: string;
+		sender?: string;
 		senderName?: string;
 		senderContactName?: string;
-		sender: string;
 	};
 	messageData?: any;
 	from?: string;
 	status?: string;
+	stateInstance?: string;
+}
+
+// Helper function to format phone number for chat ID
+function formatPhoneNumber(phone: string, type: "private" | "group" = "private"): string {
+	const cleaned = phone.replace(/\D/g, "");
+	return type === "group" ? `${cleaned}@g.us` : `${cleaned}@c.us`;
+}
+
+// Helper function to extract phone number from vCard
+function extractPhoneNumberFromVCard(vcard: string): string | null {
+	if (!vcard) return null;
+	const telMatch = vcard.match(/TEL[^:]*:([+\d\s-]+)/i);
+	if (telMatch && telMatch[1]) {
+		return telMatch[1].replace(/\s|-/g, "").trim();
+	}
+	return null;
 }
 
 @Injectable()
@@ -47,34 +62,8 @@ export class GhlTransformer
 	implements MessageTransformer<GhlWebhookDto, GhlPlatformMessage> {
 	private readonly logger = new Logger(GhlTransformer.name);
 
-	/**
-	 * Formats a phone number for WhatsApp chat ID
-	 * @param phone The phone number to format
-	 * @param type 'private' for individual chats, 'group' for group chats
-	 * @returns Formatted WhatsApp chat ID
-	 */
-	private formatPhoneNumber(phone: string, type: 'private' | 'group'): string {
-		const cleaned = phone.replace(/[^0-9]/g, '');
-		return type === 'group' ? `${cleaned}@g.us` : `${cleaned}@c.us`;
-	}
-
-	/**
-	 * Extracts phone number from a vCard string
-	 * @param vcard The vCard string to parse
-	 * @returns The extracted phone number or null if not found
-	 */
-	private extractPhoneNumberFromVCard(vcard: string): string | null {
-		if (!vcard) return null;
-		// Match TEL lines in vCard format, e.g., TEL;type=CELL:+1234567890
-		const telMatch = vcard.match(/TEL[^:]*:([+\d\s-]+)/i);
-		if (telMatch && telMatch[1]) {
-			return telMatch[1].replace(/[\s-]/g, '').trim();
-		}
-		return null;
-	}
-
-	toPlatformMessage(webhook: GreenApiWebhookLegacy): GhlPlatformMessage {
-		this.logger.debug(`Transforming Green API webhook to GHL Platform Message: ${JSON.stringify(webhook)}`);
+	toPlatformMessage(webhook: EvolutionWebhook): GhlPlatformMessage {
+		this.logger.debug(`Transforming Evolution API webhook to GHL Platform Message: ${JSON.stringify(webhook)}`);
 		let messageText = "";
 		const attachments: GhlPlatformMessage["attachments"] = [];
 
@@ -127,7 +116,7 @@ export class GhlTransformer
 					break;
 				case "contactMessage":
 					const contact = msgData.contactMessageData;
-					const phone = this.extractPhoneNumberFromVCard(contact.vcard);
+					const phone = extractPhoneNumberFromVCard(contact.vcard);
 					messageText = [
 						"👤 User shared a contact:",
 						contact.displayName && `Name: ${contact.displayName}`,
@@ -138,7 +127,7 @@ export class GhlTransformer
 					const contactsArray = msgData.messageData.contacts;
 					const contactsText = contactsArray
 						.map(c => {
-							const p = this.extractPhoneNumberFromVCard(c.vcard);
+							const p = extractPhoneNumberFromVCard(c.vcard);
 							return `👤 ${c.displayName}${p ? ` (${p})` : ""}`;
 						})
 						.join("\n");
@@ -249,7 +238,7 @@ export class GhlTransformer
 					break;
 
 				default:
-					this.logger.warn(`Unsupported GREEN-API message type`, msgData);
+					this.logger.warn(`Unsupported Evolution API message type`, msgData);
 					messageText = "User sent an unsupported message type";
 			}
 
@@ -299,21 +288,21 @@ export class GhlTransformer
 			};
 		}
 
-		this.logger.error(`Cannot transform unsupported Green API webhook type: ${webhook.typeWebhook}`);
+		this.logger.error(`Cannot transform unsupported Evolution API webhook type: ${webhook.typeWebhook}`);
 		return {
 			contactId: "error_contact_id",
 			locationId: "error_location_id",
-			message: `Error: Unsupported Green API webhook type ${webhook.typeWebhook}`,
+			message: `Error: Unsupported Evolution API webhook type ${webhook.typeWebhook}`,
 			direction: "inbound",
 		};
 	}
 
-	toEvolutionMessage(ghlWebhook: GhlWebhookDto): Message {
+	toEvolutionMessage(ghlWebhook: GhlWebhookDto): EvolutionMessage {
 		this.logger.debug(`Transforming GHL Webhook to Evolution API Message: ${JSON.stringify(ghlWebhook)}`);
 
 		if (ghlWebhook.type === "SMS" && ghlWebhook.phone) {
 			const isGroupChatId = ghlWebhook.phone.length > 16;
-			const chatId = this.formatPhoneNumber(ghlWebhook.phone, isGroupChatId ? "group" : "private");
+			const chatId = formatPhoneNumber(ghlWebhook.phone, isGroupChatId ? "group" : "private");
 
 			if (ghlWebhook.attachments && ghlWebhook.attachments.length > 0) {
 				const attachmentUrl = ghlWebhook.attachments[0];

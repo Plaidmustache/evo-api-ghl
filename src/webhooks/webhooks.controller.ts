@@ -5,16 +5,17 @@ import {
 	UseGuards,
 	HttpCode,
 	HttpStatus, Res, BadRequestException,
-	Headers, Logger,
+	Headers,
+	Logger,
 } from "@nestjs/common";
 import { GhlService } from "../ghl/ghl.service";
 import { GhlWebhookDto } from "../ghl/dto/ghl-webhook.dto";
+import { EvolutionWebhookGuard } from "./guards/evolution-webhook.guard";
 import { Response } from "express";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service";
 import { WorkflowActionDto } from "../ghl/dto/workflow-action.dto";
 import { WorkflowTokenGuard } from "./guards/workflow-token.guard";
-import type { EvolutionWebhook } from "../ghl/types/evolution-webhook.types";
 
 @Controller("webhooks")
 export class WebhooksController {
@@ -23,14 +24,15 @@ export class WebhooksController {
 	constructor(private readonly ghlService: GhlService, private configService: ConfigService, private prisma: PrismaService) {}
 
 	@Post("evolution")
+	@UseGuards(EvolutionWebhookGuard)
 	@HttpCode(HttpStatus.OK)
-	async handleEvolutionWebhook(@Body() webhook: EvolutionWebhook, @Res() res: Response): Promise<void> {
-		this.logger.debug(`Evolution API Webhook Body: ${JSON.stringify(webhook)}`);
+	async handleEvolutionWebhook(@Body() webhook: Record<string, unknown>, @Res() res: Response): Promise<void> {
+		this.logger.debug(`Evolution Webhook Body: ${JSON.stringify(webhook)}`);
 		res.status(HttpStatus.OK).send();
 		try {
-			await this.ghlService.handleEvolutionWebhook(webhook);
+			await this.ghlService.handleEvolutionWebhook(webhook as any, ["incomingMessageReceived", "stateInstanceChanged", "incomingCall"]);
 		} catch (error) {
-			this.logger.error(`Error processing Evolution API webhook`, error);
+			this.logger.error(`Error processing Evolution webhook`, error);
 		}
 	}
 

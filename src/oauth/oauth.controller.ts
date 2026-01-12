@@ -1,17 +1,16 @@
 import {
-	Controller, Get, Query, Res, HttpException, HttpStatus,
+	Controller, Get, Query, Res, HttpException, HttpStatus, Logger,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Response } from "express";
 import axios from "axios";
 import { PrismaService } from "../prisma/prisma.service";
 import { GhlOAuthCallbackDto } from "./dto/ghl-oauth-callback.dto";
-import { GreenApiLogger } from "@green-api/greenapi-integration";
 import { InstalledLocation, InstalledLocationsResponse, LocationTokenResponse } from "../types";
 
 @Controller("oauth")
 export class GhlOauthController {
-	private readonly logger = GreenApiLogger.getInstance(GhlOauthController.name);
+	private readonly logger = new Logger(GhlOauthController.name);
 	private readonly ghlServicesUrl = "https://services.leadconnectorhq.com";
 
 	constructor(
@@ -221,10 +220,10 @@ export class GhlOauthController {
 					
 					<div class="success-icon">✅</div>
 					<h1>Authentication Complete!</h1>
-					<p>Your workspace has been successfully connected to GREEN-API.</p>
+					<p>Your workspace has been successfully connected to Evolution API.</p>
 					
 					<div class="highlight">
-					  You can now manage your WhatsApp instances through the GREEN-API WhatsApp app's page (located in the navigation panel on the left).
+					  You can now manage your WhatsApp instances through the Evolution API WhatsApp app's page (located in the navigation panel on the left).
 					</div>
 					
 					<div class="close-note">
@@ -593,7 +592,7 @@ export class GhlOauthController {
 								</svg>
 							</div>
 							<h1>Bulk Installation Complete!</h1>
-							<p>GREEN-API WhatsApp integration has been successfully installed across multiple locations</p>
+							<p>Evolution API WhatsApp integration has been successfully installed across multiple locations</p>
 						</div>
 
 						<div class="content">
@@ -644,7 +643,7 @@ export class GhlOauthController {
 							` : ""}
 
 							<div class="highlight">
-								🎉 Each location can now manage WhatsApp instances independently through their GREEN-API WhatsApp app in the navigation panel.
+								🎉 Each location can now manage WhatsApp instances independently through their Evolution API WhatsApp app in the navigation panel.
 							</div>
 
 							<div class="close-note">

@@ -13,7 +13,8 @@ export type EvolutionWebhookEvent =
 	| "MESSAGES_UPDATE"
 	| "SEND_MESSAGE"
 	| "CONTACTS_UPDATE"
-	| "CHATS_UPDATE";
+	| "CHATS_UPDATE"
+	| "CALL";
 
 /**
  * Evolution API connection states

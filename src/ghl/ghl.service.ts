@@ -15,32 +15,14 @@ import {
 	MessageStatusPayload, WorkflowActionData, WorkflowActionResult,
 } from "../types";
 
-// Type definitions for Evolution API webhooks and responses
-type EvolutionWebhookType = "incomingMessageReceived" | "stateInstanceChanged" | "incomingCall" | "outgoingMessageSent" | "messageDelivered" | "messageRead";
-
-interface EvolutionWebhook {
-	typeWebhook: EvolutionWebhookType;
-	instanceData: {
-		idInstance: number | string;
-		wid?: string;
-	};
-	timestamp: number;
-	senderData?: {
-		chatId: string;
-		chatName?: string;
-		sender?: string;
-		senderName?: string;
-		senderContactName?: string;
-	};
-	messageData?: any;
-	from?: string;
-	status?: string;
-	stateInstance?: string;
-}
-
-interface StateInstanceWebhook extends EvolutionWebhook {
-	stateInstance: string;
-}
+// Import Evolution API v2 types
+import {
+	EvolutionWebhook,
+	EvolutionConnectionState,
+	EvolutionMessage,
+	isMessagesUpsertData,
+	isConnectionUpdateData,
+} from "./types/evolution-webhook.types";
 
 interface SendResponse {
 	idMessage: string;
@@ -376,108 +358,163 @@ export class GhlService {
 	}
 
 	/**
-	 * Handles incoming Evolution API webhook
+	 * Handles incoming Evolution API v2 webhook
 	 */
 	async handleEvolutionWebhook(
 		instance: Instance & { user: User },
 		webhook: EvolutionWebhook,
 	): Promise<void> {
-		this.logger.log(`Handling Evolution webhook: ${webhook.typeWebhook} for instance ${instance.instanceName}`);
+		this.logger.log(`Handling Evolution webhook: ${webhook.event} for instance ${instance.instanceName}`);
 
-		switch (webhook.typeWebhook) {
-			case "stateInstanceChanged":
-				await this.handleStateChange(instance, webhook as StateInstanceWebhook);
+		switch (webhook.event) {
+			case "CONNECTION_UPDATE":
+				if (isConnectionUpdateData(webhook.data)) {
+					await this.handleConnectionUpdate(instance, webhook.data.state);
+				}
 				break;
-			case "incomingMessageReceived":
-				await this.handleIncomingMessage(instance, webhook);
+			case "MESSAGES_UPSERT":
+				if (isMessagesUpsertData(webhook.data)) {
+					await this.handleMessagesUpsert(instance, webhook.data.messages || []);
+				}
 				break;
-			case "outgoingMessageSent":
-				await this.handleOutgoingMessage(instance, webhook);
+			case "MESSAGES_UPDATE":
+				this.logger.debug(`Message status update for instance ${instance.instanceName}`);
 				break;
-			case "messageDelivered":
-			case "messageRead":
-				await this.handleMessageStatus(instance, webhook);
-				break;
-			case "incomingCall":
-				this.logger.log(`Incoming call from ${webhook.from} - not forwarding to GHL`);
+			case "SEND_MESSAGE":
+				this.logger.debug(`Outgoing message tracked for instance ${instance.instanceName}`);
 				break;
 			default:
-				this.logger.warn(`Unknown webhook type: ${webhook.typeWebhook}`);
+				this.logger.warn(`Unhandled webhook event: ${webhook.event}`);
 		}
 	}
 
 	/**
-	 * Handles instance state changes
+	 * Handles connection state changes
 	 */
-	private async handleStateChange(
+	private async handleConnectionUpdate(
 		instance: Instance & { user: User },
-		webhook: StateInstanceWebhook,
+		state: EvolutionConnectionState,
 	): Promise<void> {
-		const newState = parseInstanceState(webhook.stateInstance);
-		if (newState) {
-			await this.prisma.updateInstanceState(instance.id, newState);
-			this.logger.log(`Instance ${instance.instanceName} state changed to ${newState}`);
+		const dbState = parseInstanceState(state);
+		if (dbState) {
+			await this.prisma.updateInstanceState(instance.id, dbState);
+			this.logger.log(`Instance ${instance.instanceName} state changed to ${state}`);
 		}
 	}
 
 	/**
-	 * Handles incoming WhatsApp messages
+	 * Handles incoming WhatsApp messages (Evolution API v2 format)
 	 */
-	private async handleIncomingMessage(
+	private async handleMessagesUpsert(
 		instance: Instance & { user: User },
-		webhook: EvolutionWebhook,
+		messages: EvolutionMessage[],
 	): Promise<void> {
-		if (!webhook.senderData) {
-			this.logger.warn("Incoming message webhook missing senderData");
-			return;
+		for (const msg of messages) {
+			// Skip outgoing messages
+			if (msg.key.fromMe) {
+				this.logger.debug("Skipping outgoing message");
+				continue;
+			}
+
+			// Extract phone number from remoteJid (format: 31612345678@s.whatsapp.net)
+			const remoteJid = msg.key.remoteJid;
+			const phone = remoteJid.replace(/@s\.whatsapp\.net$/, "").replace(/@g\.us$/, "");
+			const name = msg.pushName || phone;
+			const isGroup = remoteJid.endsWith("@g.us");
+
+			// Extract message text
+			let messageText = "";
+			const attachments: Array<{ url: string; fileName?: string; type?: string }> = [];
+
+			if (msg.message) {
+				if (msg.message.conversation) {
+					messageText = msg.message.conversation;
+				} else if (msg.message.extendedTextMessage?.text) {
+					messageText = msg.message.extendedTextMessage.text;
+				} else if (msg.message.imageMessage) {
+					messageText = msg.message.imageMessage.caption || "Image received";
+					if (msg.message.imageMessage.url) {
+						attachments.push({
+							url: msg.message.imageMessage.url,
+							type: msg.message.imageMessage.mimetype,
+						});
+					}
+				} else if (msg.message.videoMessage) {
+					messageText = msg.message.videoMessage.caption || "Video received";
+					if (msg.message.videoMessage.url) {
+						attachments.push({
+							url: msg.message.videoMessage.url,
+							type: msg.message.videoMessage.mimetype,
+						});
+					}
+				} else if (msg.message.audioMessage) {
+					messageText = "Voice message received";
+					if (msg.message.audioMessage.url) {
+						attachments.push({
+							url: msg.message.audioMessage.url,
+							type: msg.message.audioMessage.mimetype,
+						});
+					}
+				} else if (msg.message.documentMessage) {
+					messageText = msg.message.documentMessage.caption || `Document: ${msg.message.documentMessage.fileName || "file"}`;
+					if (msg.message.documentMessage.url) {
+						attachments.push({
+							url: msg.message.documentMessage.url,
+							fileName: msg.message.documentMessage.fileName,
+							type: msg.message.documentMessage.mimetype,
+						});
+					}
+				} else if (msg.message.stickerMessage) {
+					messageText = "Sticker received";
+				} else if (msg.message.locationMessage) {
+					const loc = msg.message.locationMessage;
+					messageText = `📍 Location shared: ${loc.name || ""} ${loc.address || ""}\nhttps://maps.google.com/?q=${loc.degreesLatitude},${loc.degreesLongitude}`;
+				} else if (msg.message.contactMessage) {
+					messageText = `👤 Contact shared: ${msg.message.contactMessage.displayName}`;
+				} else {
+					messageText = "Message received (unsupported type)";
+					this.logger.warn(`Unsupported message type: ${JSON.stringify(Object.keys(msg.message))}`);
+				}
+			}
+
+			if (!messageText && attachments.length === 0) {
+				this.logger.warn("Message has no text content and no attachments, skipping");
+				continue;
+			}
+
+			// Add group sender info if it's a group message
+			if (isGroup && msg.key.participant) {
+				const senderPhone = msg.key.participant.replace(/@s\.whatsapp\.net$/, "");
+				messageText = `${name} (+${senderPhone}):\n${messageText}`;
+			}
+
+			this.logger.log(`Processing message from ${phone}: ${messageText.substring(0, 50)}...`);
+
+			// Upsert contact in GHL
+			const contactResponse = await this.upsertContact(instance.user, {
+				locationId: instance.user.id,
+				phone,
+				name,
+				source: "WhatsApp",
+			});
+
+			// Send message to GHL conversation
+			await this.sendMessageToGhlConversation(
+				instance.user,
+				contactResponse.contact.id,
+				{
+					contactId: contactResponse.contact.id,
+					locationId: instance.user.id,
+					message: messageText,
+					text: messageText,
+					direction: "inbound",
+					attachments: attachments.length > 0 ? attachments : undefined,
+				},
+			);
 		}
-
-		const { chatId, senderName, senderContactName } = webhook.senderData;
-		const phone = chatId.replace("@c.us", "").replace("@g.us", "");
-		const name = senderContactName || senderName || phone;
-
-		// Transform to GHL format
-		const ghlMessage = this.ghlTransformer.transformEvolutionToGhl(webhook, instance);
-		if (!ghlMessage) {
-			this.logger.warn("Failed to transform Evolution message to GHL format");
-			return;
-		}
-
-		// Upsert contact in GHL
-		const contactResponse = await this.upsertContact(instance.user, {
-			locationId: instance.user.id,
-			phone,
-			name,
-			source: "WhatsApp",
-		});
-
-		// Send message to GHL conversation
-		await this.sendMessageToGhlConversation(
-			instance.user,
-			contactResponse.contact.id,
-			ghlMessage,
-		);
 	}
 
-	/**
-	 * Handles outgoing WhatsApp messages (for tracking)
-	 */
-	private async handleOutgoingMessage(
-		instance: Instance & { user: User },
-		webhook: EvolutionWebhook,
-	): Promise<void> {
-		this.logger.debug(`Outgoing message tracked for instance ${instance.instanceName}`);
-	}
 
-	/**
-	 * Handles message status updates (delivered/read)
-	 */
-	private async handleMessageStatus(
-		instance: Instance & { user: User },
-		webhook: EvolutionWebhook,
-	): Promise<void> {
-		this.logger.debug(`Message status update: ${webhook.status} for instance ${instance.instanceName}`);
-	}
 
 	/**
 	 * Sends a message to a GHL conversation

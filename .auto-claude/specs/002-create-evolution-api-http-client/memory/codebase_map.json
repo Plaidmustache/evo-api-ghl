@@ -1,0 +1,15 @@
+{
+  "discovered_files": {
+    "src/ghl/ghl.service.ts": {
+      "description": "Axios HTTP client pattern: Use axios.create() with baseURL and default headers. Set up response interceptors for error handling. Log errors with context before throwing HttpException.",
+      "category": "pattern",
+      "discovered_at": "2026-01-11T14:46:02.321999+00:00"
+    },
+    "src/prisma/prisma.module.ts": {
+      "description": "NestJS module pattern: Use @Global() decorator for app-wide services, @Module({ providers: [...], exports: [...] }) structure",
+      "category": "pattern",
+      "discovered_at": "2026-01-11T14:46:02.343582+00:00"
+    }
+  },
+  "last_updated": "2026-01-11T14:46:02.343604+00:00"
+}

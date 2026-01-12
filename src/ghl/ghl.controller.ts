@@ -7,7 +7,10 @@ import {
 	Body,
 	Param,
 	HttpException,
-	HttpStatus, Req, UseGuards, Logger,
+	HttpStatus,
+	Req,
+	UseGuards,
+	Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { GhlService } from "./ghl.service";
@@ -53,8 +56,10 @@ export class GhlController {
 		return {
 			success: true,
 			instances: instances.map(instance => ({
-				id: instance.idInstance.toString(),
-				name: instance.name || `Instance ${instance.idInstance}`,
+				id: instance.instanceName,
+				instanceName: instance.instanceName,
+				evolutionApiUrl: instance.evolutionApiUrl,
+				name: instance.name || `Instance ${instance.instanceName}`,
 				state: instance.stateInstance,
 				createdAt: instance.createdAt,
 				settings: instance.settings,
@@ -90,8 +95,10 @@ export class GhlController {
 			return {
 				success: true,
 				instance: {
-					id: instance.idInstance.toString(),
-					name: instance.name || `Instance ${instance.idInstance}`,
+					id: instance.instanceName,
+					instanceName: instance.instanceName,
+					evolutionApiUrl: instance.evolutionApiUrl,
+					name: instance.name || `Instance ${instance.instanceName}`,
 					state: instance.stateInstance,
 					createdAt: instance.createdAt,
 				},
@@ -100,7 +107,7 @@ export class GhlController {
 			this.logger.error(`Error creating instance: ${error.message}`, error.stack);
 
 			if (error.message.includes("already exists")) {
-				throw new HttpException("Instance ID already exists", HttpStatus.CONFLICT);
+				throw new HttpException("Instance already exists", HttpStatus.CONFLICT);
 			}
 
 			if (error.code === "INVALID_CREDENTIALS") {
@@ -114,21 +121,16 @@ export class GhlController {
 		}
 	}
 
-	@Delete(":instanceId")
-	async deleteInstance(@Param("instanceId") instanceId: string, @Req() req: AuthReq) {
-		const instance = await this.prisma.getInstance(BigInt(instanceId));
+	@Delete(":instanceName")
+	async deleteInstance(@Param("instanceName") instanceName: string, @Req() req: AuthReq) {
+		const instance = await this.prisma.getInstance(instanceName);
 		if (!instance || (instance.userId !== req.locationId)) {
 			throw new HttpException("Unauthorized", HttpStatus.FORBIDDEN);
 		}
-		this.logger.log(`Deleting instance: ${instanceId}`);
+		this.logger.log(`Deleting instance: ${instanceName}`);
 
 		try {
-			const instance = await this.prisma.getInstance(BigInt(instanceId));
-			if (!instance) {
-				throw new HttpException("Instance not found", HttpStatus.NOT_FOUND);
-			}
-
-			await this.prisma.removeInstance(BigInt(instanceId));
+			await this.prisma.removeInstance(instanceName);
 
 			return {
 				success: true,
@@ -147,28 +149,32 @@ export class GhlController {
 		}
 	}
 
-	@Patch(":instanceId")
+	@Patch(":instanceName")
 	async updateInstance(
-		@Param("instanceId") instanceId: string,
+		@Param("instanceName") instanceName: string,
 		@Body() dto: UpdateInstanceDto,
+		@Req() req: AuthReq,
 	) {
-		this.logger.log(`Updating instance: ${instanceId}`);
+		const instance = await this.prisma.getInstance(instanceName);
+		if (!instance || (instance.userId !== req.locationId)) {
+			throw new HttpException("Unauthorized", HttpStatus.FORBIDDEN);
+		}
+		this.logger.log(`Updating instance: ${instanceName}`);
+
 		try {
-			let instance = await this.prisma.getInstance(BigInt(instanceId));
-			if (!instance) {
-				throw new HttpException("Instance not found", HttpStatus.NOT_FOUND);
-			}
+			let updatedInstance = instance;
 			if (dto.name) {
-				instance = await this.prisma.updateInstanceName(BigInt(instanceId), dto.name);
+				updatedInstance = await this.prisma.updateInstanceName(instanceName, dto.name);
 			}
 
 			return {
 				success: true,
 				instance: {
-					id: instance.idInstance.toString(),
-					name: instance.name || `Instance ${instance.idInstance}`,
-					state: instance.stateInstance,
-					createdAt: instance.createdAt,
+					id: updatedInstance.instanceName,
+					instanceName: updatedInstance.instanceName,
+					name: updatedInstance.name || `Instance ${updatedInstance.instanceName}`,
+					state: updatedInstance.stateInstance,
+					createdAt: updatedInstance.createdAt,
 				},
 			};
 		} catch (error) {

@@ -521,66 +521,9 @@
       ]
     }
   },
-  "qa_signoff": {
-    "status": "approved",
-    "qa_session": 0,
-    "issues_found": [
-      {
-        "description": "Previous issue fixed: getInstances() now uses instanceName instead of idInstance (commit 31b2cf3). Out-of-scope items acknowledged: schema fields (spec-001) and createEvolutionInstanceForUser method (spec-005)."
-      }
-    ],
-    "tests_passed": {},
-    "timestamp": "2026-01-11T17:01:49.914885+00:00",
-    "ready_for_qa_revalidation": false
-  },
+  "qa_signoff": null,
   "created_at": "2026-01-11T14:27:12.159Z",
-  "updated_at": "2026-01-11T17:08:37.705Z",
-  "status": "human_review",
-  "last_updated": "2026-01-11T17:01:49.914907+00:00",
-  "qa_iteration_history": [
-    {
-      "iteration": 1,
-      "status": "rejected",
-      "timestamp": "2026-01-11T16:57:00.711194+00:00",
-      "issues": [
-        {
-          "type": "critical",
-          "title": "Schema missing required Evolution API fields",
-          "location": "prisma/schema.prisma",
-          "fix_required": "Complete spec-001 to add instanceName, evolutionApiUrl, evolutionApiKey fields to Instance model"
-        },
-        {
-          "type": "critical",
-          "title": "Missing createEvolutionInstanceForUser() method",
-          "location": "src/ghl/ghl.service.ts",
-          "fix_required": "Complete spec-005 to add the createEvolutionInstanceForUser() method"
-        },
-        {
-          "type": "major",
-          "title": "getInstances() still references idInstance",
-          "location": "src/ghl/ghl.controller.ts:59,62",
-          "fix_required": "Change idInstance references to instanceName in response mapping"
-        }
-      ],
-      "duration_seconds": 215.13
-    },
-    {
-      "iteration": 2,
-      "status": "approved",
-      "timestamp": "2026-01-11T17:02:04.957645+00:00",
-      "issues": [],
-      "duration_seconds": 209.32
-    }
-  ],
-  "qa_stats": {
-    "total_iterations": 2,
-    "last_iteration": 2,
-    "last_status": "approved",
-    "issues_by_type": {
-      "critical": 2,
-      "major": 1
-    }
-  },
-  "planStatus": "review",
-  "recoveryNote": "Task recovered from stuck state at 2026-01-11T17:08:37.705Z"
+  "updated_at": "2026-01-11T19:00:00.000Z",
+  "status": "planned",
+  "last_updated": "2026-01-11T16:53:06.121882+00:00"
 }

@@ -16,8 +16,9 @@ import { GhlContextGuard } from "./guards/ghl-context.guard";
 
 interface CreateInstanceDto {
 	locationId: string;
-	instanceId: string;
-	apiToken: string;
+	instanceName: string;
+	evolutionApiUrl: string;
+	evolutionApiKey: string;
 	name?: string;
 }
 
@@ -52,8 +53,9 @@ export class GhlController {
 		return {
 			success: true,
 			instances: instances.map(instance => ({
-				id: instance.idInstance.toString(),
-				name: instance.name || `Instance ${instance.idInstance}`,
+				id: instance.id.toString(),
+				instanceName: instance.instanceName,
+				name: instance.name || instance.instanceName,
 				state: instance.stateInstance,
 				createdAt: instance.createdAt,
 				settings: instance.settings,
@@ -80,16 +82,18 @@ export class GhlController {
 		try {
 			const instance = await this.ghlService.createEvolutionInstanceForUser(
 				dto.locationId,
-				BigInt(dto.instanceId),
-				dto.apiToken,
+				dto.instanceName,
+				dto.evolutionApiUrl,
+				dto.evolutionApiKey,
 				dto.name,
 			);
 
 			return {
 				success: true,
 				instance: {
-					id: instance.idInstance.toString(),
-					name: instance.name || `Instance ${instance.idInstance}`,
+					id: instance.id.toString(),
+					instanceName: instance.instanceName,
+					name: instance.name || instance.instanceName,
 					state: instance.stateInstance,
 					createdAt: instance.createdAt,
 				},
@@ -98,7 +102,7 @@ export class GhlController {
 			this.logger.error(`Error creating instance: ${error.message}`, error.stack);
 
 			if (error.message.includes("already exists")) {
-				throw new HttpException("Instance ID already exists", HttpStatus.CONFLICT);
+				throw new HttpException("Instance already exists", HttpStatus.CONFLICT);
 			}
 
 			if (error.code === "INVALID_CREDENTIALS") {
@@ -121,11 +125,6 @@ export class GhlController {
 		this.logger.log(`Deleting instance: ${instanceId}`);
 
 		try {
-			const instance = await this.prisma.getInstance(BigInt(instanceId));
-			if (!instance) {
-				throw new HttpException("Instance not found", HttpStatus.NOT_FOUND);
-			}
-
 			await this.prisma.removeInstance(BigInt(instanceId));
 
 			return {
@@ -163,8 +162,9 @@ export class GhlController {
 			return {
 				success: true,
 				instance: {
-					id: instance.idInstance.toString(),
-					name: instance.name || `Instance ${instance.idInstance}`,
+					id: instance.id.toString(),
+					instanceName: instance.instanceName,
+					name: instance.name || instance.instanceName,
 					state: instance.stateInstance,
 					createdAt: instance.createdAt,
 				},

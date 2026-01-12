@@ -59,46 +59,56 @@ export class PrismaService
 		});
 	}
 
-	async createInstance(instanceData: Prisma.InstanceCreateInput): Promise<Instance> {
-		const ghlLocationId = instanceData.user.connect?.id;
-		const stateInstance = instanceData.stateInstance;
-		const idInstance = BigInt(instanceData.idInstance);
+	async createInstance(instanceData: {
+		instanceName: string;
+		evolutionApiUrl: string;
+		evolutionApiKey: string;
+		userId: string;
+		stateInstance?: InstanceState | null;
+		settings?: Record<string, unknown>;
+		name?: string;
+	}): Promise<Instance> {
+		const { instanceName, evolutionApiUrl, evolutionApiKey, userId, stateInstance, settings, name } = instanceData;
 
-		if (!ghlLocationId) {
-			throw new Error("userId (GHL Location ID as string) is required on the instance data to create an Instance.");
-		}
-
-		const userExists = await this.user.findUnique({where: {id: ghlLocationId}});
+		const userExists = await this.user.findUnique({where: {id: userId}});
 		if (!userExists) {
-			throw new NotFoundException(`User (GHL Location) with ID ${ghlLocationId} not found. Cannot create instance.`);
+			throw new NotFoundException(`User (GHL Location) with ID ${userId} not found. Cannot create instance.`);
 		}
 
 		const existingInstance = await this.instance.findUnique({
-			where: {idInstance},
+			where: {instanceName},
 		});
 
 		if (existingInstance) {
-			throw new Error(`Instance with ID ${idInstance} already exists.`);
+			throw new Error(`Instance with name ${instanceName} already exists.`);
 		}
 
 		return this.instance.create({
 			data: {
-				idInstance,
-				apiTokenInstance: instanceData.apiTokenInstance,
-				stateInstance: stateInstance || InstanceState.notAuthorized,
-				settings: instanceData.settings || {},
-				name: instanceData.name,
+				instanceName,
+				evolutionApiUrl,
+				evolutionApiKey,
+				stateInstance: stateInstance || null,
+				settings: settings || {},
+				name: name || instanceName,
 				user: {
-					connect: {id: ghlLocationId},
+					connect: {id: userId},
 				},
 			},
 		});
 	}
 
-	async getInstance(idInstance: number | bigint): Promise<(Instance & { user: User }) | null> {
+	async getInstance(id: number | bigint): Promise<(Instance & { user: User }) | null> {
 		return this.instance.findUnique({
-			where: {idInstance: BigInt(idInstance)},
+			where: {id: BigInt(id)},
 			include: {user: true},
+		});
+	}
+
+	async getInstanceByName(instanceName: string): Promise<(Instance & { user: User }) | null> {
+		return this.instance.findFirst({
+			where: { instanceName },
+			include: { user: true },
 		});
 	}
 
@@ -109,38 +119,31 @@ export class PrismaService
 		});
 	}
 
-	async removeInstance(idInstance: number | bigint): Promise<Instance> {
+	async removeInstance(id: number | bigint): Promise<Instance> {
 		return this.instance.delete({
-			where: {idInstance: BigInt(idInstance)},
+			where: {id: BigInt(id)},
 		});
 	}
 
-	async updateInstanceSettings(idInstance: number | bigint, settings: Record<string, unknown>): Promise<Instance> {
+	async updateInstanceSettings(id: number | bigint, settings: Record<string, unknown>): Promise<Instance> {
 		return this.instance.update({
-			where: {idInstance: BigInt(idInstance)},
+			where: {id: BigInt(id)},
 			data: {settings: settings || {}},
 		});
 	}
 
-	async updateInstanceState(idInstance: number | bigint, state: InstanceState): Promise<Instance> {
+	async updateInstanceState(id: number | bigint, state: InstanceState): Promise<Instance> {
 		return this.instance.update({
-			where: {idInstance: BigInt(idInstance)},
+			where: {id: BigInt(id)},
 			data: {stateInstance: state},
 		});
 	}
 
-	async updateInstanceName(idInstance: number | bigint, name: string): Promise<Instance & { user: User }> {
+	async updateInstanceName(id: number | bigint, name: string): Promise<Instance & { user: User }> {
 		return this.instance.update({
-			where: {idInstance: BigInt(idInstance)},
+			where: {id: BigInt(id)},
 			data: {name},
 			include: {user: true},
-		});
-	}
-
-	async getInstanceByName(name: string): Promise<(Instance & { user: User }) | null> {
-		return this.instance.findFirst({
-			where: { name },
-			include: { user: true },
 		});
 	}
 }

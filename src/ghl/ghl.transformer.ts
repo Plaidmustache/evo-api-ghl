@@ -62,15 +62,37 @@ export class GhlTransformer
 	implements MessageTransformer<GhlWebhookDto, GhlPlatformMessage> {
 	private readonly logger = new Logger(GhlTransformer.name);
 
+	/**
+	 * Transforms an Evolution API webhook to a GHL platform message
+	 * Alias for toPlatformMessage for clarity in service layer
+	 */
+	transformEvolutionToGhl(webhook: EvolutionWebhook, instance: any): GhlPlatformMessage | null {
+		try {
+			return this.toPlatformMessage(webhook);
+		} catch (error) {
+			this.logger.error(`Failed to transform Evolution webhook: ${error.message}`);
+			return null;
+		}
+	}
+
 	toPlatformMessage(webhook: EvolutionWebhook): GhlPlatformMessage {
 		this.logger.debug(`Transforming Evolution API webhook to GHL Platform Message: ${JSON.stringify(webhook)}`);
 		let messageText = "";
 		const attachments: GhlPlatformMessage["attachments"] = [];
 
 		if (webhook.typeWebhook === "incomingMessageReceived") {
-			const isGroup = webhook.senderData?.chatId?.endsWith("@g.us") || false;
+			if (!webhook.senderData) {
+				this.logger.warn("incomingMessageReceived webhook missing senderData");
+				return {
+					contactId: "error_contact_id",
+					locationId: "error_location_id",
+					message: "Error: Missing sender data",
+					direction: "inbound",
+				};
+			}
+			const isGroup = webhook.senderData.chatId?.endsWith("@g.us") || false;
 			const senderName = webhook.senderData.senderName || webhook.senderData.senderContactName || "Unknown";
-			const senderNumber = webhook.senderData.sender;
+			const senderNumber = webhook.senderData.sender || "unknown";
 			const msgData = webhook.messageData;
 			switch (msgData.typeMessage) {
 				case "textMessage":

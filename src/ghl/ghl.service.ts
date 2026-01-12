@@ -4,7 +4,8 @@ import axios, { AxiosInstance, AxiosError } from "axios";
 import { GhlTransformer } from "./ghl.transformer";
 import { PrismaService } from "../prisma/prisma.service";
 import { GhlWebhookDto } from "./dto/ghl-webhook.dto";
-import type { Instance, User } from "@prisma/client";
+import type { Instance, User, InstanceState } from "@prisma/client";
+import { InstanceState as InstanceStateEnum } from "@prisma/client";
 import { randomBytes } from "crypto";
 import {
 	GhlContact,
@@ -90,6 +91,24 @@ function formatPhoneNumber(phone: string, type: "private" | "group" = "private")
 	return type === "group" ? `${cleaned}@g.us` : `${cleaned}@c.us`;
 }
 
+// Helper to convert string state to InstanceState enum
+function parseInstanceState(state: string | undefined): InstanceState | null {
+	if (!state) return null;
+	switch (state.toLowerCase()) {
+		case "open":
+		case "authorized":
+			return InstanceStateEnum.open;
+		case "close":
+		case "closed":
+		case "notauthorized":
+			return InstanceStateEnum.close;
+		case "connecting":
+			return InstanceStateEnum.connecting;
+		default:
+			return null;
+	}
+}
+
 @Injectable()
 export class GhlService {
 	private readonly logger = new Logger(GhlService.name);
@@ -104,808 +123,554 @@ export class GhlService {
 
 	/**
 	 * Creates an Evolution API client for the given instance credentials
-	 * Note: This is a stub implementation. The actual Evolution API client
-	 * should be configured based on the Evolution API server URL in environment.
 	 */
-	private createEvolutionClient(instance: { idInstance: bigint; apiTokenInstance: string }): EvolutionClient {
-		const evolutionApiUrl = this.configService.get<string>("EVOLUTION_API_URL") || "http://localhost:8080";
+	private createEvolutionClient(instance: { instanceName: string; evolutionApiUrl: string; evolutionApiKey: string }): EvolutionClient {
 		const client = axios.create({
-			baseURL: `${evolutionApiUrl}/instance/${instance.idInstance}`,
+			baseURL: `${instance.evolutionApiUrl}/message/sendText/${instance.instanceName}`,
 			headers: {
-				"Authorization": `Bearer ${instance.apiTokenInstance}`,
+				"apikey": instance.evolutionApiKey,
+				"Content-Type": "application/json",
+			},
+		});
+
+		const baseClient = axios.create({
+			baseURL: instance.evolutionApiUrl,
+			headers: {
+				"apikey": instance.evolutionApiKey,
 				"Content-Type": "application/json",
 			},
 		});
 
 		return {
 			async sendMessage(params): Promise<SendResponse> {
-				const response = await client.post("/sendMessage", params);
-				return response.data;
+				const response = await baseClient.post(`/message/sendText/${instance.instanceName}`, {
+					number: params.chatId,
+					text: params.message,
+					linkPreview: params.linkPreview,
+				});
+				return { idMessage: response.data?.key?.id || response.data?.messageId || "sent" };
 			},
 			async sendFileByUrl(params): Promise<SendResponse> {
-				const response = await client.post("/sendFileByUrl", params);
-				return response.data;
+				const response = await baseClient.post(`/message/sendMedia/${instance.instanceName}`, {
+					number: params.chatId,
+					mediatype: "document",
+					media: params.file.url,
+					fileName: params.file.fileName,
+					caption: params.caption,
+				});
+				return { idMessage: response.data?.key?.id || response.data?.messageId || "sent" };
 			},
 			async sendInteractiveButtons(params): Promise<SendResponse> {
-				const response = await client.post("/sendInteractiveButtons", params);
-				return response.data;
+				const response = await baseClient.post(`/message/sendButtons/${instance.instanceName}`, {
+					number: params.chatId,
+					title: params.header,
+					description: params.body,
+					footer: params.footer,
+					buttons: params.buttons,
+				});
+				return { idMessage: response.data?.key?.id || response.data?.messageId || "sent" };
 			},
 			async sendInteractiveButtonsReply(params): Promise<SendResponse> {
-				const response = await client.post("/sendInteractiveButtonsReply", params);
-				return response.data;
+				const response = await baseClient.post(`/message/sendButtons/${instance.instanceName}`, {
+					number: params.chatId,
+					title: params.header,
+					description: params.body,
+					footer: params.footer,
+					buttons: params.buttons,
+				});
+				return { idMessage: response.data?.key?.id || response.data?.messageId || "sent" };
 			},
 			async getWaSettings(): Promise<WaSettings> {
-				const response = await client.get("/settings");
-				return response.data;
+				const response = await baseClient.get(`/instance/connectionState/${instance.instanceName}`);
+				return {
+					stateInstance: response.data?.state,
+				};
 			},
 			async setSettings(settings: Settings): Promise<void> {
-				await client.post("/settings", settings);
+				await baseClient.post(`/webhook/set/${instance.instanceName}`, {
+					webhook: {
+						url: settings.webhookUrl,
+						headers: { token: settings.webhookUrlToken },
+						events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "CALL"],
+					},
+				});
 			},
 		};
 	}
 
-	private async getHttpClient(ghlUserId: string): Promise<AxiosInstance> {
-		const userWithTokens = await this.prisma.getUserWithTokens(ghlUserId);
-		if (!userWithTokens || !userWithTokens.accessToken || !userWithTokens.refreshToken) {
-			this.logger.error(`No tokens found for GHL User (Location ID): ${ghlUserId}`);
-			throw new HttpException(`GHL auth tokens not found for User ${ghlUserId}. Re-authorize.`, HttpStatus.UNAUTHORIZED);
+	/**
+	 * Creates a new Evolution API instance for a user
+	 */
+	async createEvolutionInstanceForUser(
+		userId: string,
+		instanceName: string,
+		evolutionApiUrl: string,
+		evolutionApiKey: string,
+		name?: string,
+	): Promise<Instance> {
+		// Verify the Evolution API credentials by checking connection
+		const testClient = this.createEvolutionClient({ instanceName, evolutionApiUrl, evolutionApiKey });
+		
+		try {
+			await testClient.getWaSettings();
+		} catch (error) {
+			this.logger.error(`Failed to verify Evolution API credentials: ${error.message}`);
+			const err = new Error("Invalid Evolution API credentials or instance not found");
+			(err as any).code = "INVALID_CREDENTIALS";
+			throw err;
 		}
 
-		let currentAccessToken = userWithTokens.accessToken;
+		// Create instance in database
+		const instance = await this.prisma.createInstance({
+			instanceName,
+			evolutionApiUrl,
+			evolutionApiKey,
+			userId,
+			stateInstance: InstanceStateEnum.connecting,
+			name,
+		});
 
-		if (userWithTokens.tokenExpiresAt && new Date(userWithTokens.tokenExpiresAt).getTime() < Date.now() + 5 * 60 * 1000) {
-			this.logger.log(`GHL Access token for User ${ghlUserId} expiring. Refreshing...`);
-			try {
-				const newTokens = await this.refreshGhlAccessToken(userWithTokens.refreshToken);
-				await this.prisma.updateUserTokens(
-					ghlUserId, newTokens.access_token, newTokens.refresh_token,
-					new Date(Date.now() + newTokens.expires_in * 1000),
-				);
-				currentAccessToken = newTokens.access_token;
-				this.logger.log(`GHL Access token refreshed for User ${ghlUserId}`);
-			} catch (error) {
-				this.logger.error(`Failed to refresh GHL access token for User ${ghlUserId}: ${error.message}`);
-				throw new HttpException(`Failed to refresh GHL token for User ${ghlUserId}. Re-authorize.`, HttpStatus.UNAUTHORIZED);
-			}
+		// Set up webhook for this instance
+		const webhookUrl = this.configService.get<string>("WEBHOOK_URL") || 
+			`${this.configService.get<string>("APP_URL")}/webhooks/evolution`;
+		const webhookToken = randomBytes(32).toString("hex");
+
+		try {
+			await testClient.setSettings({
+				webhookUrl,
+				webhookUrlToken: webhookToken,
+				incomingWebhook: "yes",
+				incomingCallWebhook: "yes", 
+				stateWebhook: "yes",
+			});
+
+			await this.prisma.updateInstanceSettings(instance.id, { webhookToken });
+		} catch (error) {
+			this.logger.warn(`Failed to set webhook for instance ${instanceName}: ${error.message}`);
 		}
 
-		const httpClient = axios.create({
+		return instance;
+	}
+
+	/**
+	 * Creates an authenticated GHL API client for a user
+	 */
+	private createGhlClient(user: User): AxiosInstance {
+		return axios.create({
 			baseURL: this.ghlApiBaseUrl,
 			headers: {
-				Authorization: `Bearer ${currentAccessToken}`,
+				Authorization: `Bearer ${user.accessToken}`,
 				Version: this.ghlApiVersion,
 				"Content-Type": "application/json",
 			},
 		});
-
-		httpClient.interceptors.response.use((response) => response, async (error: AxiosError) => {
-			const originalRequest = error.config;
-			const userForRetry = await this.prisma.getUserWithTokens(ghlUserId);
-			if (!userForRetry?.refreshToken) {
-				this.logger.error(`User ${ghlUserId} or refresh token disappeared during retry logic.`);
-				throw error;
-			}
-
-			if (error.response?.status === 401 && originalRequest && !originalRequest.headers["_retry"]) {
-				originalRequest.headers["_retry"] = true;
-				this.logger.warn(`GHL API request 401 for User ${ghlUserId}. Retrying with token refresh.`);
-				try {
-					const newTokens = await this.refreshGhlAccessToken(userForRetry.refreshToken);
-					await this.prisma.updateUserTokens(
-						ghlUserId, newTokens.access_token, newTokens.refresh_token,
-						new Date(Date.now() + newTokens.expires_in * 1000),
-					);
-					this.logger.log(`GHL Token refreshed after 401 for User ${ghlUserId}`);
-					originalRequest.headers["Authorization"] = `Bearer ${newTokens.access_token}`;
-					return httpClient(originalRequest);
-				} catch (refreshError) {
-					this.logger.error(`Failed to refresh GHL token after 401 for User ${ghlUserId}: ${refreshError.message}`);
-					throw new HttpException(`GHL token refresh failed for User ${ghlUserId} after 401. Re-authorize.`, HttpStatus.UNAUTHORIZED);
-				}
-			}
-			const status = error.response?.status;
-			const data = error.response?.data;
-			this.logger.error(`GHL API Error: [${originalRequest?.method?.toUpperCase()} ${originalRequest?.url}] ${status} – ${JSON.stringify(data)}`);
-			throw new HttpException((data as any)?.message || "GHL API request failed", status || HttpStatus.INTERNAL_SERVER_ERROR);
-		});
-		return httpClient;
 	}
 
-	private async refreshGhlAccessToken(refreshToken: string): Promise<{
-		access_token: string; refresh_token: string; expires_in: number;
-		token_type: string; scope: string; userType: string; companyId: string;
-	}> {
-		const body = new URLSearchParams({
-			client_id: this.configService.get<string>("GHL_CLIENT_ID")!,
-			client_secret: this.configService.get<string>("GHL_CLIENT_SECRET")!,
-			grant_type: "refresh_token",
-			refresh_token: refreshToken,
-			user_type: "Location",
-		});
+	/**
+	 * Refreshes OAuth tokens for a user
+	 */
+	async refreshUserTokens(user: User): Promise<User> {
+		const clientId = this.configService.get<string>("GHL_CLIENT_ID");
+		const clientSecret = this.configService.get<string>("GHL_CLIENT_SECRET");
+
 		try {
-			const response = await axios.post(`${this.ghlApiBaseUrl}/oauth/token`, body.toString(),
-				{headers: {"Content-Type": "application/x-www-form-urlencoded"}});
+			const response = await axios.post(
+				"https://services.leadconnectorhq.com/oauth/token",
+				new URLSearchParams({
+					client_id: clientId!,
+					client_secret: clientSecret!,
+					grant_type: "refresh_token",
+					refresh_token: user.refreshToken!,
+				}),
+				{
+					headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				},
+			);
+
+			const { access_token, refresh_token, expires_in } = response.data;
+			const tokenExpiresAt = new Date(Date.now() + expires_in * 1000);
+
+			return await this.prisma.updateUserTokens(
+				user.id,
+				access_token,
+				refresh_token,
+				tokenExpiresAt,
+			);
+		} catch (error) {
+			this.logger.error(`Failed to refresh tokens for user ${user.id}: ${error.message}`);
+			throw new HttpException("Failed to refresh authentication", HttpStatus.UNAUTHORIZED);
+		}
+	}
+
+	/**
+	 * Gets or refreshes a valid GHL client for a user
+	 */
+	private async getValidGhlClient(user: User): Promise<{ client: AxiosInstance; user: User }> {
+		let currentUser = user;
+
+		if (currentUser.tokenExpiresAt && new Date(currentUser.tokenExpiresAt) <= new Date()) {
+			currentUser = await this.refreshUserTokens(currentUser);
+		}
+
+		return { client: this.createGhlClient(currentUser), user: currentUser };
+	}
+
+	/**
+	 * Upserts a contact in GHL
+	 */
+	async upsertContact(
+		user: User,
+		contactData: GhlContactUpsertRequest,
+	): Promise<GhlContactUpsertResponse> {
+		const { client } = await this.getValidGhlClient(user);
+
+		try {
+			const response = await client.post<GhlContactUpsertResponse>(
+				"/contacts/upsert",
+				contactData,
+			);
 			return response.data;
 		} catch (error) {
-			this.logger.error(`GHL Token Refresh Error: ${error.response?.status} ${JSON.stringify(error.response?.data)}`);
-			throw new Error(`Failed to refresh GHL token: ${error.response?.data?.message || error.message}`);
+			this.logger.error(`Failed to upsert contact: ${error.message}`);
+			throw new HttpException("Failed to create/update contact", HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
-	public async getGhlContact(
-		ghlUserId: string,
-		phone: string,
-	): Promise<GhlContact | null> {
-		const httpClient = await this.getHttpClient(ghlUserId);
-		const formattedPhone = phone.startsWith("+") ? phone : `+${phone}`;
+	/**
+	 * Gets a contact by ID from GHL
+	 */
+	async getContact(user: User, contactId: string): Promise<GhlContact | null> {
+		const { client } = await this.getValidGhlClient(user);
 
 		try {
-			const {data}: { data: GhlContactUpsertResponse } = await httpClient.post("/contacts/upsert", {
-				locationId: ghlUserId,
-				phone: formattedPhone,
-			});
-
-			if (data && data.contact) {
-				return data.contact;
-			}
-			return null;
+			const response = await client.get<{ contact: GhlContact }>(`/contacts/${contactId}`);
+			return response.data.contact;
 		} catch (error) {
-			this.logger.error(`Error getting GHL contact by phone ${formattedPhone} in Location ${ghlUserId}: ${error.message}`, error.response?.data);
+			if ((error as AxiosError).response?.status === 404) {
+				return null;
+			}
 			throw error;
 		}
 	}
 
-	private async findOrCreateGhlContact(
-		ghlUserId: string,
-		phone: string,
-		name?: string,
-		instanceId?: string,
-		isGroup?: boolean,
-	): Promise<{ id: string; [key: string]: any }> {
-		const httpClient = await this.getHttpClient(ghlUserId);
-
-		let contactName: string;
-		let tags = [`whatsapp-instance-${instanceId}`];
-		const formattedPhone = phone.startsWith("+") ? phone : `+${phone}`;
-
-		if (isGroup) {
-			contactName = `[Group] ${name || "Unknown Group"}`;
-			tags.push("whatsapp-group");
-		} else {
-			contactName = name || `WhatsApp ${phone}`;
-		}
-
-		const upsertPayload: GhlContactUpsertRequest = {
-			locationId: ghlUserId,
-			phone: formattedPhone,
-			name: contactName,
-			source: "Evolution-API",
-			tags: instanceId ? tags : undefined,
-		};
-
-		this.logger.log(`Upserting GHL contact for ${isGroup ? "group" : "phone"} ${formattedPhone} in Location ${ghlUserId} with payload:`, upsertPayload);
+	/**
+	 * Searches for a contact by phone in GHL
+	 */
+	async findContactByPhone(user: User, phone: string): Promise<GhlContact | null> {
+		const { client } = await this.getValidGhlClient(user);
 
 		try {
-			const {data} = await httpClient.post("/contacts/upsert", upsertPayload);
-
-			if (data && data.contact && data.contact.id) {
-				this.logger.log(`Successfully upserted GHL contact. ID: ${data.contact.id} for ${isGroup ? "group" : "phone"} ${formattedPhone} in Location ${ghlUserId}`);
-				return data.contact;
-			} else {
-				this.logger.error("Failed to upsert contact or get ID from response. Response data:", data);
-				throw new Error("Could not get ID from GHL contact upsert response.");
-			}
-		} catch (error) {
-			this.logger.error(`Error during GHL contact upsert for ${isGroup ? "group" : "phone"} ${phone} in Location ${ghlUserId}: ${error.message}`, error.response?.data);
-			throw error;
-		}
-	}
-
-	public async updateGhlMessageStatus(
-		ghlLocationId: string,
-		ghlMessageId: string,
-		status: "delivered" | "read" | "failed" | "pending",
-		errorDetails?: { code: string; type: string; message: string },
-	): Promise<void> {
-		this.logger.log(`Attempting to update GHL message ${ghlMessageId} to status ${status} for location ${ghlLocationId}`);
-
-		try {
-			const httpClient = await this.getHttpClient(ghlLocationId);
-			const apiUrl = `/conversations/messages/${ghlMessageId}/status`;
-
-			const payload: MessageStatusPayload = {status};
-
-			if (status === "failed") {
-				payload.error = errorDetails || {
-					code: "1",
-					type: "delivery_failed",
-					message: "Message delivery failed",
-				};
-			}
-
-			await httpClient.put(apiUrl, payload);
-			this.logger.log(`Successfully updated GHL message ${ghlMessageId} to status ${status} for location ${ghlLocationId}`);
-		} catch (error) {
-			this.logger.error(
-				`Failed to update GHL message status for message ${ghlMessageId} in location ${ghlLocationId} to ${status}: ${error.message}`,
-				error.response?.data,
-			);
-			if (error instanceof HttpException) {
-				throw error;
-			}
-			throw new HttpException(
-				`GHL API call to update message status failed for message ${ghlMessageId}`,
-				error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
-			);
-		}
-	}
-
-	public async postOutboundMessageToGhl(
-		locationId: string,
-		contactId: string,
-		messageContent: string,
-		attachments?: string[],
-	): Promise<void> {
-		const httpClient = await this.createPlatformClient(locationId);
-		const payload: any = {
-			type: "Custom",
-			contactId,
-			message: messageContent + "\f\f\f\f\f",
-			conversationProviderId: this.configService.get<string>("GHL_CONVERSATION_PROVIDER_ID")!,
-		};
-
-		this.logger.log(`Posting outbound message to GHL for contact ${contactId}`, payload);
-
-		if (attachments && attachments.length > 0) {
-			payload.attachments = attachments;
-		}
-
-		try {
-			const {data: msgRes} = await httpClient.post("/conversations/messages", payload);
-			this.logger.log(`Successfully posted outbound message to GHL for contact ${contactId}`, msgRes);
-
-			const messageId = msgRes.messageId;
-
-			setTimeout(async () => {
-				try {
-					await this.updateGhlMessageStatus(locationId, messageId, "delivered");
-					this.logger.log(`Updated GHL message status to delivered`, {messageId});
-				} catch (statusError) {
-					this.logger.warn(`Failed to update GHL message status, but message was posted successfully`, {
-						messageId,
-						error: statusError.message,
-					});
-				}
-			}, 5000);
-		} catch (error) {
-			this.logger.error(`Error posting outbound GHL message for contact ${contactId}`, error);
-			throw error;
-		}
-	}
-
-	private async postInboundMessageToGhl(
-		ghlUserId: string,
-		contactId: string,
-		messageContent: string,
-		attachments: GhlPlatformMessage["attachments"],
-	): Promise<void> {
-		const httpClient = await this.getHttpClient(ghlUserId);
-		let conversationId: string;
-
-		try {
-			const {data: search} = await httpClient.get("/conversations/search", {
+			const response = await client.get<{ contacts: GhlContact[] }>("/contacts/", {
 				params: {
-					locationId: ghlUserId,
-					contactId,
-					limit: 1,
+					locationId: user.id,
+					query: phone,
 				},
 			});
-			if (search.conversations?.length > 0) {
-				conversationId = search.conversations[0].id;
-				this.logger.log(`Found existing GHL conversation ${conversationId} for contact ${contactId} in Location ${ghlUserId}`);
-			} else {
-				this.logger.log(`No existing GHL conversation for contact ${contactId} in Location ${ghlUserId}. Creating new one.`);
-				const {data: create} = await httpClient.post("/conversations/", {
-					locationId: ghlUserId,
-					contactId,
-				});
-				conversationId = create.conversation?.id ?? create.id;
-				if (!conversationId) {
-					this.logger.error("Failed to get conversationId from create conversation response", create);
-					throw new Error("Failed to create or retrieve conversation ID.");
-				}
-				this.logger.log(`Created new GHL conversation ${conversationId} for contact ${contactId} in Location ${ghlUserId}`);
-			}
+
+			const contacts = response.data.contacts || [];
+			return contacts.find(c => c.phone === phone) || contacts[0] || null;
 		} catch (error) {
-			this.logger.error(`Error during get/create GHL conversation for contact ${contactId} in Location ${ghlUserId}: ${error.message}`, error.response?.data);
-			throw error;
-		}
-
-		const payload: any = {
-			type: "Custom",
-			conversationId,
-			message: messageContent,
-			direction: "inbound",
-			conversationProviderId: this.configService.get<string>("GHL_CONVERSATION_PROVIDER_ID"),
-		};
-
-		if (attachments && attachments.length > 0) {
-			payload.attachments = attachments.map(att => att.url);
-			this.logger.warn(`Sending attachments to GHL for custom inbound. Payload (array of URLs):`, payload.attachments);
-		}
-
-		this.logger.log(`Attempting to post inbound message to GHL for convo ${conversationId}. Payload:`, payload);
-		try {
-			const {data: msgRes} = await httpClient.post(
-				`/conversations/messages/inbound`,
-				payload,
-			);
-			this.logger.log(`Successfully posted inbound message to GHL conversation ${conversationId}. Response:`, msgRes);
-			return msgRes;
-		} catch (error) {
-			this.logger.error(`Error posting inbound GHL message to convo ${conversationId}: ${error.message}. Payload sent:`, payload);
-			this.logger.error("Error data:", error.response?.data);
-			throw error;
+			this.logger.error(`Failed to search contacts: ${error.message}`);
+			return null;
 		}
 	}
 
-	public async createPlatformClient(ghlUserId: string): Promise<AxiosInstance> {
-		this.logger.log(`Creating platform client (AxiosInstance) for GHL User (Location): ${ghlUserId}.`);
-		return this.getHttpClient(ghlUserId);
-	}
-
-	public async sendToPlatform(
-		ghlMessageDto: GhlPlatformMessage,
+	/**
+	 * Handles incoming Evolution API webhook
+	 */
+	async handleEvolutionWebhook(
 		instance: Instance & { user: User },
+		webhook: EvolutionWebhook,
 	): Promise<void> {
-		this.logger.log(`Sending message to GHL for instance ${instance.idInstance} linked to User (Loc) ${instance.userId}`);
-		this.logger.debug(`GHL DTO: ${JSON.stringify(ghlMessageDto)}`);
+		this.logger.log(`Handling Evolution webhook: ${webhook.typeWebhook} for instance ${instance.instanceName}`);
 
-		if (!instance.userId) throw new HttpException("Instance not linked to User (GHL Location).", HttpStatus.BAD_REQUEST);
-		if (!ghlMessageDto.contactId) throw new HttpException("GHL Contact ID missing.", HttpStatus.BAD_REQUEST);
-
-		ghlMessageDto.locationId = instance.userId;
-
-		try {
-			await this.postInboundMessageToGhl(
-				instance.userId,
-				ghlMessageDto.contactId,
-				ghlMessageDto.message,
-				ghlMessageDto.attachments,
-			);
-			this.logger.log(`Message sent to GHL for contact ${ghlMessageDto.contactId} in User (Loc) ${instance.userId}.`);
-		} catch (error) {
-			this.logger.error(`Failed to send message to GHL: ${error.message}`, error.stack);
-			throw error;
-		}
-	}
-
-	public async handlePlatformWebhook(
-		ghlWebhook: GhlWebhookDto,
-		idInstance: number | bigint,
-	): Promise<SendResponse> {
-		const locationId = ghlWebhook.locationId;
-		const messageId = ghlWebhook.messageId;
-
-		let gaResponse: SendResponse;
-		this.logger.log(`Handling GHL webhook for Evolution API Instance ID: ${idInstance}`);
-		this.logger.debug(`GHL Webhook DTO: ${JSON.stringify(ghlWebhook)}`);
-
-		const instance = await this.prisma.getInstance(BigInt(idInstance));
-		if (!instance) throw new NotFoundException(`Instance ${idInstance} not found.`);
-		if (!instance.user) throw new HttpException("Instance not linked to User.", HttpStatus.BAD_REQUEST);
-		if (instance.stateInstance !== "authorized") throw new HttpException("Instance is not authorized", HttpStatus.UNAUTHORIZED);
-
-		const evolutionClient = this.createEvolutionClient(instance);
-		const transformedMessage = this.ghlTransformer.toEvolutionMessage(ghlWebhook);
-
-		this.logger.log(`Transformed GHL message to Evolution API format for instance ${idInstance}`);
-		this.logger.debug(`Evolution API Message: ${JSON.stringify(transformedMessage)}`);
-
-		switch (transformedMessage.type) {
-			case "text":
-				gaResponse = await evolutionClient.sendMessage(transformedMessage);
+		switch (webhook.typeWebhook) {
+			case "stateInstanceChanged":
+				await this.handleStateChange(instance, webhook as StateInstanceWebhook);
 				break;
-			case "url-file":
-				gaResponse = await evolutionClient.sendFileByUrl(transformedMessage);
+			case "incomingMessageReceived":
+				await this.handleIncomingMessage(instance, webhook);
+				break;
+			case "outgoingMessageSent":
+				await this.handleOutgoingMessage(instance, webhook);
+				break;
+			case "messageDelivered":
+			case "messageRead":
+				await this.handleMessageStatus(instance, webhook);
+				break;
+			case "incomingCall":
+				this.logger.log(`Incoming call from ${webhook.from} - not forwarding to GHL`);
 				break;
 			default:
-				this.logger.error(`Unsupported Evolution API message type from GHL transform: ${transformedMessage.type}`);
-				throw new HttpException(`Invalid Evolution API message type: ${transformedMessage.type}`, HttpStatus.INTERNAL_SERVER_ERROR);
+				this.logger.warn(`Unknown webhook type: ${webhook.typeWebhook}`);
 		}
-		await this.updateGhlMessageStatus(locationId, messageId, "delivered");
-		return gaResponse;
 	}
 
-	public async handleEvolutionWebhook(
-		webhook: EvolutionWebhook,
-		allowedTypes: EvolutionWebhookType[],
+	/**
+	 * Handles instance state changes
+	 */
+	private async handleStateChange(
+		instance: Instance & { user: User },
+		webhook: StateInstanceWebhook,
 	): Promise<void> {
-		const idInstance = BigInt(webhook.instanceData.idInstance);
-		this.logger.log(`Handling Evolution API webhook type: ${webhook.typeWebhook} for Instance: ${idInstance}`);
-		if (!allowedTypes.includes(webhook.typeWebhook)) {
-			this.logger.warn(`Skipping Evolution API webhook: type ${webhook.typeWebhook} not in allowed: ${allowedTypes.join(", ")}`);
+		const newState = parseInstanceState(webhook.stateInstance);
+		if (newState) {
+			await this.prisma.updateInstanceState(instance.id, newState);
+			this.logger.log(`Instance ${instance.instanceName} state changed to ${newState}`);
+		}
+	}
+
+	/**
+	 * Handles incoming WhatsApp messages
+	 */
+	private async handleIncomingMessage(
+		instance: Instance & { user: User },
+		webhook: EvolutionWebhook,
+	): Promise<void> {
+		if (!webhook.senderData) {
+			this.logger.warn("Incoming message webhook missing senderData");
 			return;
 		}
 
-		const instance = await this.prisma.getInstance(idInstance);
-		if (!instance) throw new NotFoundException(`Instance ${idInstance} not found.`);
-		if (!instance.user || !instance.userId) {
-			throw new HttpException("Instance not linked to User (GHL Location).", HttpStatus.INTERNAL_SERVER_ERROR);
+		const { chatId, senderName, senderContactName } = webhook.senderData;
+		const phone = chatId.replace("@c.us", "").replace("@g.us", "");
+		const name = senderContactName || senderName || phone;
+
+		// Transform to GHL format
+		const ghlMessage = this.ghlTransformer.transformEvolutionToGhl(webhook, instance);
+		if (!ghlMessage) {
+			this.logger.warn("Failed to transform Evolution message to GHL format");
+			return;
 		}
-		const instanceWithUser = instance as Instance & { user: User };
 
-		try {
-			if (webhook.typeWebhook === "stateInstanceChanged") {
-				await this.handleStateInstanceWebhook(webhook);
-			} else if (webhook.typeWebhook === "incomingMessageReceived") {
-				const isGroup = webhook.senderData?.chatId?.endsWith("@g.us") || false;
+		// Upsert contact in GHL
+		const contactResponse = await this.upsertContact(instance.user, {
+			locationId: instance.user.id,
+			phone,
+			name,
+			source: "WhatsApp",
+		});
 
-				const contactIdentifier = webhook.senderData.chatId.replace(/@[cg]\.us$/, "");
-				let contactName: string;
-				let logContext: string;
-
-				if (isGroup) {
-					contactName = webhook.senderData.chatName || "Unknown Group";
-					logContext = `group "${contactName}" (${contactIdentifier}) sent by ${webhook.senderData.senderName || "Unknown"}`;
-				} else {
-					contactName = webhook.senderData.senderName || webhook.senderData.senderContactName || `WhatsApp ${contactIdentifier}`;
-					logContext = `individual ${contactName} (${contactIdentifier})`;
-				}
-
-				this.logger.log(`Processing message from ${logContext}`);
-
-				const ghlContact = await this.findOrCreateGhlContact(
-					instanceWithUser.userId,
-					contactIdentifier,
-					contactName,
-					webhook.instanceData.idInstance.toString(),
-					isGroup,
-				);
-				if (!ghlContact?.id) throw new HttpException("Failed to resolve GHL contact.", HttpStatus.INTERNAL_SERVER_ERROR);
-
-				const transformedMsg = this.ghlTransformer.toPlatformMessage(webhook);
-				transformedMsg.contactId = ghlContact.id;
-				transformedMsg.locationId = instanceWithUser.userId;
-
-				await this.sendToPlatform(transformedMsg, instanceWithUser);
-			} else if (webhook.typeWebhook === "incomingCall") {
-				const callerPhoneRaw = webhook.from;
-				const normalizedPhone = callerPhoneRaw.split("@")[0];
-				const callerName = `WhatsApp ${normalizedPhone}`;
-
-				const ghlContact = await this.findOrCreateGhlContact(
-					instanceWithUser.userId,
-					normalizedPhone,
-					callerName,
-					webhook.instanceData.idInstance.toString(),
-				);
-				if (!ghlContact.id) throw new HttpException("Failed to resolve GHL contact for call.", HttpStatus.INTERNAL_SERVER_ERROR);
-
-				const transformedCallMsg = this.ghlTransformer.toPlatformMessage(webhook);
-				transformedCallMsg.contactId = ghlContact.id;
-				transformedCallMsg.locationId = instanceWithUser.userId;
-
-				await this.sendToPlatform(transformedCallMsg, instanceWithUser);
-			} else {
-				this.logger.warn(`Unhandled allowed Evolution API webhook type: ${webhook.typeWebhook}`);
-			}
-		} catch (error) {
-			this.logger.error(`Error in handleEvolutionWebhook for instance ${idInstance}, type ${webhook.typeWebhook}: ${error.message}`, error.stack);
-			throw new HttpException("Failed to handle Evolution API webhook", HttpStatus.INTERNAL_SERVER_ERROR);
-		}
+		// Send message to GHL conversation
+		await this.sendMessageToGhlConversation(
+			instance.user,
+			contactResponse.contact.id,
+			ghlMessage,
+		);
 	}
 
-	public async handleStateInstanceWebhook(webhook: StateInstanceWebhook): Promise<void> {
-		const idInstance = BigInt(webhook.instanceData.idInstance);
-		this.logger.log(`StateInstanceWebhook for instance ${idInstance}. New state: ${webhook.stateInstance}`);
+	/**
+	 * Handles outgoing WhatsApp messages (for tracking)
+	 */
+	private async handleOutgoingMessage(
+		instance: Instance & { user: User },
+		webhook: EvolutionWebhook,
+	): Promise<void> {
+		this.logger.debug(`Outgoing message tracked for instance ${instance.instanceName}`);
+	}
+
+	/**
+	 * Handles message status updates (delivered/read)
+	 */
+	private async handleMessageStatus(
+		instance: Instance & { user: User },
+		webhook: EvolutionWebhook,
+	): Promise<void> {
+		this.logger.debug(`Message status update: ${webhook.status} for instance ${instance.instanceName}`);
+	}
+
+	/**
+	 * Sends a message to a GHL conversation
+	 */
+	private async sendMessageToGhlConversation(
+		user: User,
+		contactId: string,
+		message: GhlPlatformMessage,
+	): Promise<void> {
+		const { client } = await this.getValidGhlClient(user);
+
 		try {
-			const dbInstance = await this.prisma.updateInstanceState(idInstance, webhook.stateInstance);
-			const currentSettings = dbInstance.settings || {};
-			if (webhook.instanceData.wid && webhook.instanceData.wid !== currentSettings.wid) {
-				await this.prisma.updateInstanceSettings(idInstance, {
-					...currentSettings,
-					wid: webhook.instanceData.wid,
-				});
-				this.logger.log(`Instance ${idInstance} WID updated to ${webhook.instanceData.wid}.`);
+			// Create or get conversation
+			const convResponse = await client.post("/conversations/", {
+				locationId: user.id,
+				contactId,
+			});
+
+			const conversationId = convResponse.data.conversation?.id;
+			if (!conversationId) {
+				throw new Error("Failed to create conversation");
 			}
-			this.logger.log(`Instance ${idInstance} state updated to ${webhook.stateInstance}.`);
+
+			// Send inbound message
+			await client.post(`/conversations/${conversationId}/messages/inbound`, {
+				type: message.type || "Custom",
+				message: message.text || message.body,
+				attachments: message.attachments,
+			});
+
+			this.logger.log(`Message sent to GHL conversation ${conversationId}`);
 		} catch (error) {
-			this.logger.error(`Failed to update instance state for ${idInstance}: ${error.message}`, error.stack);
+			this.logger.error(`Failed to send message to GHL: ${error.message}`);
 			throw error;
 		}
 	}
 
-	public async createEvolutionInstanceForUser(
-		ghlUserId: string,
-		idInstance: number | bigint,
-		apiTokenInstance: string,
-		name?: string,
-	): Promise<Instance> {
-		this.logger.log(`Creating Evolution API instance ${idInstance} for User (GHL Location) ${ghlUserId}`);
+	/**
+	 * Handles outbound messages from GHL to WhatsApp
+	 */
+	async handleGhlOutboundMessage(
+		instance: Instance & { user: User },
+		webhookData: GhlWebhookDto,
+	): Promise<void> {
+		this.logger.log(`Handling GHL outbound message for instance ${instance.instanceName}`);
 
-		const ghlUser = await this.prisma.findUser(ghlUserId);
-		if (!ghlUser) throw new NotFoundException(`User (GHL Location) ${ghlUserId} not found.`);
-
-		const evolutionClient = this.createEvolutionClient({idInstance: BigInt(idInstance), apiTokenInstance});
-		let waSettings: WaSettings;
-		try {
-			waSettings = await evolutionClient.getWaSettings();
-		} catch (error) {
-			this.logger.warn(`Failed to get WA settings for new instance ${idInstance}: ${error.message}.`);
-			throw new HttpException("Invalid instance credentials", HttpStatus.BAD_REQUEST);
+		if (instance.stateInstance !== InstanceStateEnum.open) {
+			throw new HttpException("WhatsApp instance not connected", HttpStatus.SERVICE_UNAVAILABLE);
 		}
 
-		const appBaseUrl = this.configService.get<string>("APP_URL");
-		const webhookToken = randomBytes(16).toString("hex");
-		const settings: Settings = {
-			webhookUrl: `${appBaseUrl}/webhooks/evolution`,
-			webhookUrlToken: webhookToken,
-			incomingWebhook: "yes",
-			incomingCallWebhook: "yes",
-			stateWebhook: "yes",
-			wid: waSettings?.phone ? `${waSettings.phone}@c.us` : undefined,
-		};
+		const client = this.createEvolutionClient(instance);
+		const phone = webhookData.phone;
+		
+		if (!phone) {
+			throw new BadRequestException("No phone number provided");
+		}
+
+		const chatId = formatPhoneNumber(phone);
 
 		try {
-			const dbInstance = await this.prisma.createInstance({
-				idInstance: BigInt(idInstance),
-				apiTokenInstance,
-				user: {
-					connect: {id: ghlUserId},
-				},
-				settings,
-				stateInstance: waSettings?.stateInstance || "notAuthorized",
-				name: name || `WhatsApp ${idInstance}`,
-			});
-			this.logger.log(`Instance ${idInstance} record created for User (Loc) ${ghlUserId}. DB ID: ${dbInstance.id}`);
-
-			try {
-				await evolutionClient.setSettings(settings);
-				this.logger.log(`Applied initial settings to Evolution API instance ${idInstance}.`);
-			} catch (error) {
-				this.logger.error(`Failed to apply initial settings to Evolution API instance ${idInstance}: ${error.message}. DB record exists.`);
+			if (webhookData.attachments?.length) {
+				for (const attachmentUrl of webhookData.attachments) {
+					// Extract filename from URL or use default
+					const fileName = attachmentUrl.split('/').pop() || "file";
+					await client.sendFileByUrl({
+						chatId,
+						file: {
+							url: attachmentUrl,
+							fileName,
+						},
+						caption: webhookData.message,
+					});
+				}
+			} else if (webhookData.message) {
+				await client.sendMessage({
+					chatId,
+					message: webhookData.message,
+				});
 			}
-			return dbInstance;
+
+			this.logger.log(`Message sent to WhatsApp: ${chatId}`);
 		} catch (error) {
-			this.logger.error(`Failed to create Evolution API instance ${idInstance} for User ${ghlUserId}: ${error.message}`, error.stack);
-			throw new HttpException("Failed to create instance", HttpStatus.INTERNAL_SERVER_ERROR);
+			this.logger.error(`Failed to send WhatsApp message: ${error.message}`);
+			throw new HttpException("Failed to send WhatsApp message", HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
-	public async handleWorkflowAction(
-		locationId: string,
-		contactPhone: string,
-		data: WorkflowActionData,
-		actionType: "message" | "file" | "interactive-buttons" | "reply-buttons",
-	): Promise<WorkflowActionResult> {
-		this.logger.log(`Processing ${actionType} workflow action for location ${locationId}`, {
-			actionType,
-			contactPhone,
-			data,
-		});
+	/**
+	 * Handles GHL conversation provider webhook
+	 */
+	async handleGhlWebhook(webhookData: GhlWebhookDto): Promise<{ success: boolean }> {
+		this.logger.log(`Received GHL webhook: ${webhookData.type}`);
 
-		const instance = await this.prisma.getInstance(BigInt(data.instanceId));
-		if (!instance) {
-			this.logger.error(`Instance ${data.instanceId} not found`, {data, locationId, contactPhone});
-			throw new BadRequestException(`Instance ${data.instanceId} not found`);
-		}
-		if (!instance.user || instance.userId !== locationId) {
-			this.logger.error(`Instance ${data.instanceId} does not belong to location ${locationId}`, {
-				data,
-				locationId,
-				contactPhone,
-			});
-			throw new BadRequestException(`Instance ${data.instanceId} does not belong to location ${locationId}`);
-		}
-		if (instance.stateInstance !== "authorized") {
-			this.logger.error(`Instance ${data.instanceId} is not authorized (state: ${instance.stateInstance})`, {
-				data,
-				locationId,
-				contactPhone,
-			});
-			throw new BadRequestException(`Instance ${data.instanceId} is not authorized (state: ${instance.stateInstance})`);
+		const locationId = webhookData.locationId;
+		if (!locationId) {
+			throw new BadRequestException("Missing locationId");
 		}
 
-		const chatId = formatPhoneNumber(contactPhone);
-		const cleanPhone = chatId.replace("@c.us", "");
-		const evolutionClient = this.createEvolutionClient(instance);
+		const user = await this.prisma.findUser(locationId);
+		if (!user) {
+			throw new NotFoundException(`Location ${locationId} not found`);
+		}
 
-		let sendResponse: SendResponse;
-		let ghlMessageContent: string;
-		let ghlAttachments: string[] | undefined;
+		const instances = await this.prisma.getInstancesByUserId(locationId);
+		const activeInstance = instances.find(i => i.stateInstance === InstanceStateEnum.open);
 
-		switch (actionType) {
-			case "message":
-				if (!data.message) throw new Error("Message is required");
-				sendResponse = await evolutionClient.sendMessage({
-					chatId,
-					message: data.message,
-					linkPreview: true,
-				});
-				ghlMessageContent = data.message;
-				this.logger.log(`Text message sent via Evolution API`, {
-					instanceId: data.instanceId,
-					messageId: sendResponse.idMessage,
-				});
+		if (!activeInstance) {
+			this.logger.warn(`No active WhatsApp instance for location ${locationId}`);
+			return { success: false };
+		}
+
+		const instanceWithUser = { ...activeInstance, user };
+
+		switch (webhookData.type) {
+			case "OutboundMessage":
+				await this.handleGhlOutboundMessage(instanceWithUser, webhookData);
 				break;
-
-			case "file":
-				if (!data.url || !data.fileName) throw new Error("URL and fileName are required for file messages");
-				sendResponse = await evolutionClient.sendFileByUrl({
-					chatId,
-					file: {url: data.url, fileName: data.fileName},
-					caption: data.caption || undefined,
-				});
-				ghlMessageContent = data.caption ? data.caption : `[File: ${data.fileName}]`;
-				ghlAttachments = [data.url];
-				this.logger.log(`File sent via Evolution API`, {
-					instanceId: data.instanceId,
-					messageId: sendResponse.idMessage,
-					fileName: data.fileName,
-				});
-				break;
-
-			case "interactive-buttons":
-				if (!data.body) throw new Error("Body is required for interactive buttons");
-				const buttons = this.buildInteractiveButtons(data);
-				if (buttons.length === 0) throw new Error("At least one button is required");
-
-				sendResponse = await evolutionClient.sendInteractiveButtons({
-					chatId,
-					header: data.header,
-					body: data.body,
-					footer: data.footer,
-					buttons,
-				});
-				ghlMessageContent = this.formatInteractiveButtonsForGhl(data, buttons);
-				this.logger.log(`Interactive buttons sent via Evolution API`, {
-					instanceId: data.instanceId,
-					messageId: sendResponse.idMessage,
-					buttonCount: buttons.length,
-				});
-				break;
-
-			case "reply-buttons":
-				if (!data.body) throw new Error("Body is required for reply buttons");
-				const replyButtons = this.buildReplyButtons(data);
-				if (replyButtons.length === 0) throw new Error("At least one button is required");
-
-				sendResponse = await evolutionClient.sendInteractiveButtonsReply({
-					chatId,
-					header: data.header,
-					body: data.body,
-					footer: data.footer,
-					buttons: replyButtons,
-				});
-				ghlMessageContent = this.formatReplyButtonsForGhl(data, replyButtons);
-				this.logger.log(`Reply buttons sent via Evolution API`, {
-					instanceId: data.instanceId,
-					messageId: sendResponse.idMessage,
-					buttonCount: replyButtons.length,
-				});
-				break;
-
 			default:
-				throw new Error(`Unsupported action type: ${actionType}`);
+				this.logger.log(`Unhandled GHL webhook type: ${webhookData.type}`);
 		}
 
-		const ghlContact = await this.getGhlContact(locationId, cleanPhone);
-		if (!ghlContact) {
-			this.logger.warn(`Could not find/create GHL contact for phone ${cleanPhone}`);
+		return { success: true };
+	}
+
+	/**
+	 * Handles workflow actions from GHL
+	 */
+	async handleWorkflowAction(data: WorkflowActionData): Promise<WorkflowActionResult> {
+		this.logger.log(`Handling workflow action: ${data.actionType}`);
+
+		const locationId = data.locationId;
+		const user = await this.prisma.findUser(locationId);
+		if (!user) {
+			return { success: false, error: "Location not found" };
+		}
+
+		const instances = await this.prisma.getInstancesByUserId(locationId);
+		const activeInstance = instances.find(i => i.stateInstance === InstanceStateEnum.open);
+
+		if (!activeInstance) {
+			return { success: false, error: "No active WhatsApp instance" };
+		}
+
+		const client = this.createEvolutionClient(activeInstance);
+
+		try {
+			switch (data.actionType) {
+				case "send_message":
+					if (data.phone && data.message) {
+						await client.sendMessage({
+							chatId: formatPhoneNumber(data.phone),
+							message: data.message,
+						});
+					}
+					break;
+				case "send_file":
+					if (data.phone && data.fileUrl) {
+						await client.sendFileByUrl({
+							chatId: formatPhoneNumber(data.phone),
+							file: {
+								url: data.fileUrl,
+								fileName: data.fileName || "file",
+							},
+							caption: data.message,
+						});
+					}
+					break;
+				default:
+					return { success: false, error: `Unknown action type: ${data.actionType}` };
+			}
+
+			return { success: true };
+		} catch (error) {
+			this.logger.error(`Workflow action failed: ${error.message}`);
+			return { success: false, error: error.message };
+		}
+	}
+
+	/**
+	 * Gets the connection status of an instance
+	 */
+	async getInstanceStatus(instance: Instance): Promise<{ state: string; phone?: string }> {
+		const client = this.createEvolutionClient(instance);
+
+		try {
+			const settings = await client.getWaSettings();
 			return {
-				success: true,
-				messageId: sendResponse.idMessage,
-				warning: `${actionType} sent but contact not found in GHL`,
+				state: settings.stateInstance || "unknown",
+				phone: settings.phone,
 			};
+		} catch (error) {
+			this.logger.error(`Failed to get instance status: ${error.message}`);
+			return { state: "error" };
 		}
-
-		await this.postOutboundMessageToGhl(locationId, ghlContact.id, ghlMessageContent, ghlAttachments);
-
-		this.logger.log(`Outbound ${actionType} posted to GHL conversation`, {
-			contactId: ghlContact.id,
-			locationId,
-			data,
-			contactPhone,
-		});
-
-		return {
-			success: true,
-			messageId: sendResponse.idMessage,
-			contactId: ghlContact.id,
-		};
-	}
-
-	private buildInteractiveButtons(data: WorkflowActionData): Array<{
-		type: "copy" | "call" | "url";
-		buttonId: string;
-		buttonText: string;
-		copyCode?: string;
-		phoneNumber?: string;
-		url?: string;
-	}> {
-		const buttons: SendInteractiveButtons["buttons"] = [];
-
-		if (data.button1Type && data.button1Text && data.button1Value) {
-			buttons.push({
-				type: data.button1Type as "copy" | "call" | "url",
-				buttonId: "1",
-				buttonText: data.button1Text,
-				...(data.button1Type === "copy" && {copyCode: data.button1Value}),
-				...(data.button1Type === "call" && {phoneNumber: data.button1Value}),
-				...(data.button1Type === "url" && {url: data.button1Value}),
-			});
-		}
-
-		if (data.button2Type && data.button2Text && data.button2Value) {
-			buttons.push({
-				type: data.button2Type as "copy" | "call" | "url",
-				buttonId: "2",
-				buttonText: data.button2Text,
-				...(data.button2Type === "copy" && {copyCode: data.button2Value}),
-				...(data.button2Type === "call" && {phoneNumber: data.button2Value}),
-				...(data.button2Type === "url" && {url: data.button2Value}),
-			});
-		}
-
-		if (data.button3Type && data.button3Text && data.button3Value) {
-			buttons.push({
-				type: data.button3Type as "copy" | "call" | "url",
-				buttonId: "3",
-				buttonText: data.button3Text,
-				...(data.button3Type === "copy" && {copyCode: data.button3Value}),
-				...(data.button3Type === "call" && {phoneNumber: data.button3Value}),
-				...(data.button3Type === "url" && {url: data.button3Value}),
-			});
-		}
-
-		return buttons;
-	}
-
-	private buildReplyButtons(data: WorkflowActionData): Array<{
-		buttonId: string;
-		buttonText: string;
-	}> {
-		const buttons: SendInteractiveButtonsReply["buttons"] = [];
-
-		if (data.button1Text) {
-			buttons.push({buttonId: "1", buttonText: data.button1Text});
-		}
-		if (data.button2Text) {
-			buttons.push({buttonId: "2", buttonText: data.button2Text});
-		}
-		if (data.button3Text) {
-			buttons.push({buttonId: "3", buttonText: data.button3Text});
-		}
-
-		return buttons;
-	}
-
-	private formatInteractiveButtonsForGhl(data: WorkflowActionData, buttons: any[]): string {
-		const buttonsList = buttons.map(btn => {
-			let buttonDesc = `• ${btn.buttonText}`;
-			if (btn.type === "url" && btn.url) buttonDesc += ` (${btn.url})`;
-			else if (btn.type === "call" && btn.phoneNumber) buttonDesc += ` (📞 ${btn.phoneNumber})`;
-			else if (btn.type === "copy" && btn.copyCode) buttonDesc += ` (📋 ${btn.copyCode})`;
-			return buttonDesc;
-		}).join("\n");
-
-		return [
-			data.header && `${data.header}`,
-			data.body,
-			data.footer && `${data.footer}`,
-			`\nButtons:\n${buttonsList}`,
-		].filter(Boolean).join("\n");
-	}
-
-	private formatReplyButtonsForGhl(data: WorkflowActionData, buttons: any[]): string {
-		const buttonsList = buttons.map(btn => `• ${btn.buttonText}`).join("\n");
-
-		return [
-			data.header && `${data.header}`,
-			data.body,
-			data.footer && `${data.footer}`,
-			`\nReply options:\n${buttonsList}`,
-		].filter(Boolean).join("\n");
 	}
 }

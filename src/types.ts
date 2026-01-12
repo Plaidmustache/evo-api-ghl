@@ -54,16 +54,21 @@ export interface LocationTokenResponse {
 
 export interface WorkflowActionResult {
 	success: boolean;
-	messageId: string;
+	messageId?: string;
 	contactId?: string;
 	warning?: string;
+	error?: string;
 }
 
 export interface WorkflowActionData {
-	instanceId: string;
+	locationId: string;
+	phone?: string;
+	actionType: "send_message" | "send_file";
 	message?: string;
-	url?: string;
+	fileUrl?: string;
 	fileName?: string;
+	instanceId?: string;
+	url?: string;
 	caption?: string;
 	header?: string;
 	body?: string;
@@ -85,6 +90,9 @@ export interface GhlPlatformMessage {
 	contactId: string;
 	locationId: string;
 	message: string;
+	text?: string;
+	body?: string;
+	type?: string;
 	direction: "inbound";
 	conversationProviderId?: string;
 	attachments?: GhlPlatformAttachment[];

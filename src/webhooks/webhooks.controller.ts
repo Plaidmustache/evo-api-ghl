@@ -7,15 +7,22 @@ import {
 	HttpStatus, Res, BadRequestException,
 	Headers,
 	Logger,
+	Req,
 } from "@nestjs/common";
 import { GhlService } from "../ghl/ghl.service";
 import { GhlWebhookDto } from "../ghl/dto/ghl-webhook.dto";
 import { EvolutionWebhookGuard } from "./guards/evolution-webhook.guard";
-import { Response } from "express";
+import { Response, Request } from "express";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service";
 import { WorkflowActionDto } from "../ghl/dto/workflow-action.dto";
 import { WorkflowTokenGuard } from "./guards/workflow-token.guard";
+import { Instance, User } from "@prisma/client";
+
+// Extend Express Request to include instance from guard
+interface EvolutionRequest extends Request {
+	instance: Instance & { user: User };
+}
 
 @Controller("webhooks")
 export class WebhooksController {
@@ -26,11 +33,21 @@ export class WebhooksController {
 	@Post("evolution")
 	@UseGuards(EvolutionWebhookGuard)
 	@HttpCode(HttpStatus.OK)
-	async handleEvolutionWebhook(@Body() webhook: Record<string, unknown>, @Res() res: Response): Promise<void> {
+	async handleEvolutionWebhook(
+		@Body() webhook: Record<string, unknown>,
+		@Req() req: EvolutionRequest,
+		@Res() res: Response,
+	): Promise<void> {
 		this.logger.debug(`Evolution Webhook Body: ${JSON.stringify(webhook)}`);
 		res.status(HttpStatus.OK).send();
 		try {
-			await this.ghlService.handleEvolutionWebhook(webhook as any, ["incomingMessageReceived", "stateInstanceChanged", "incomingCall"]);
+			// Instance is attached by EvolutionWebhookGuard
+			const instance = req.instance;
+			if (!instance) {
+				this.logger.error("No instance found in request - guard may have failed");
+				return;
+			}
+			await this.ghlService.handleEvolutionWebhook(instance, webhook as any);
 		} catch (error) {
 			this.logger.error(`Error processing Evolution webhook`, error);
 		}
@@ -58,23 +75,14 @@ export class WebhooksController {
 				throw new BadRequestException("Instance ID is required");
 			}
 
-			let actionType: "message" | "file" | "interactive-buttons" | "reply-buttons";
-			if (workflowAction.data.url) {
-				actionType = "file";
-			} else if (workflowAction.data.button1Type) {
-				actionType = "interactive-buttons";
-			} else if (workflowAction.data.button1Text) {
-				actionType = "reply-buttons";
-			} else {
-				actionType = "message";
-			}
-
-			const result = await this.ghlService.handleWorkflowAction(
+			const result = await this.ghlService.handleWorkflowAction({
 				locationId,
-				contactPhone,
-				workflowAction.data,
-				actionType,
-			);
+				phone: contactPhone,
+				actionType: workflowAction.data.url ? "send_file" : "send_message",
+				message: workflowAction.data.message,
+				fileUrl: workflowAction.data.url,
+				fileName: workflowAction.data.caption,
+			});
 
 			res.status(HttpStatus.OK).json(result);
 		} catch (error) {
@@ -120,72 +128,37 @@ export class WebhooksController {
 				this.logger.error("GHL Location ID is missing", ghlWebhook);
 				throw new BadRequestException("Location ID is missing");
 			}
-			let instanceId: string | bigint | null = null;
-			const contact = await this.ghlService.getGhlContact(locationId, ghlWebhook.phone);
-			if (contact?.tags) {
-				instanceId = this.extractInstanceIdFromTags(contact.tags);
-				if (instanceId) {
-					this.logger.log(`Found instance ID from tags: ${instanceId}`);
-				}
+
+			// Find active instance for this location
+			const instances = await this.prisma.getInstancesByUserId(locationId);
+
+			if (instances.length === 0) {
+				this.logger.error(`No instances found for location ${locationId}`);
+				res.status(HttpStatus.OK).send();
+				return;
 			}
-			if (!instanceId) {
-				this.logger.warn(
-					`WhatsApp instance ID not found in contact custom fields for phone ${ghlWebhook.phone}, falling back to location instances`,
-					{ghlWebhook, contact},
-				);
 
-				const instances = await this.prisma.getInstancesByUserId(locationId);
-
-				if (instances.length === 0) {
-					this.logger.error(`No instances found for location ${locationId}`);
-					res.status(HttpStatus.OK).send();
-					return;
-				}
-				if (instances.length === 1) {
-					this.logger.log(`Using single instance ${instances[0].idInstance} for location ${locationId}`);
-					instanceId = instances[0].idInstance;
-				} else {
-					const oldestInstance = instances.sort((a, b) =>
-						a.createdAt.getTime() - b.createdAt.getTime(),
-					)[0];
-					this.logger.warn(`Multiple instances found for location ${locationId}, using oldest: ${oldestInstance.idInstance}`);
-					instanceId = oldestInstance.idInstance;
-				}
+			// Use the first (or only) instance
+			const instance = instances[0];
+			const user = await this.prisma.findUser(locationId);
+			
+			if (!user) {
+				this.logger.error(`User not found for location ${locationId}`);
+				res.status(HttpStatus.OK).send();
+				return;
 			}
 
 			res.status(HttpStatus.OK).send();
+			
 			if (ghlWebhook.type === "SMS" && (ghlWebhook.message || (ghlWebhook.attachments && ghlWebhook.attachments.length > 0))) {
-				await this.ghlService.handlePlatformWebhook(ghlWebhook, BigInt(instanceId));
+				const instanceWithUser = { ...instance, user };
+				await this.ghlService.handleGhlOutboundMessage(instanceWithUser, ghlWebhook);
 			} else {
 				this.logger.log(`Ignoring GHL webhook type ${ghlWebhook.type}.`);
 			}
 		} catch (error) {
 			this.logger.error(`Error processing GHL webhook for location ${locationId}`, error);
-			if (locationId && messageId) {
-				try {
-					await this.ghlService.updateGhlMessageStatus(locationId, messageId, "failed", {
-						code: "500",
-						type: "message_processing_error",
-						message: error.message || "Failed to process outbound message",
-					});
-				} catch (statusUpdateError) {
-					this.logger.error(
-						`Failed to update GHL message ${messageId} status to "failed" for location ${locationId}. Error: ${statusUpdateError.message}`,
-						statusUpdateError,
-					);
-				}
-			}
 			res.status(HttpStatus.OK).send();
 		}
-	}
-
-	private extractInstanceIdFromTags(tags: string[]): string | null {
-		if (!tags || tags.length === 0) return null;
-
-		const instanceTag = tags.find(tag => tag.startsWith("whatsapp-instance-"));
-		if (instanceTag) {
-			return instanceTag.replace("whatsapp-instance-", "");
-		}
-		return null;
 	}
 }

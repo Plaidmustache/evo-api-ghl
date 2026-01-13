@@ -20,8 +20,10 @@ import {
 	EvolutionWebhook,
 	EvolutionConnectionState,
 	EvolutionMessage,
+	EvolutionMessagesUpdateData,
 	isMessagesUpsertData,
 	isConnectionUpdateData,
+	isMessagesUpdateData,
 } from "./types/evolution-webhook.types";
 
 interface SendResponse {
@@ -173,7 +175,7 @@ export class GhlService {
 					webhook: {
 						url: settings.webhookUrl,
 						headers: { token: settings.webhookUrlToken },
-						events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "CALL"],
+						events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "MESSAGES_UPDATE", "CALL"],
 					},
 				});
 			},
@@ -393,7 +395,12 @@ export class GhlService {
 				}
 				break;
 			case "MESSAGES_UPDATE":
-				this.logger.debug(`Message status update for instance ${instance.instanceName}`);
+				// Handle delivery/read receipts
+				if (isMessagesUpdateData(webhook.data)) {
+					await this.handleMessagesUpdate(instance, webhook.data);
+				} else {
+					this.logger.debug(`Message status update (unrecognized format) for instance ${instance.instanceName}`);
+				}
 				break;
 			case "SEND_MESSAGE":
 				this.logger.debug(`Outgoing message tracked for instance ${instance.instanceName}`);
@@ -414,6 +421,79 @@ export class GhlService {
 		if (dbState) {
 			await this.prisma.updateInstanceState(instance.id, dbState);
 			this.logger.log(`Instance ${instance.instanceName} state changed to ${state}`);
+		}
+	}
+
+	/**
+	 * Handles message status updates (delivery/read receipts) from Evolution API
+	 */
+	private async handleMessagesUpdate(
+		instance: Instance & { user: User },
+		data: EvolutionMessagesUpdateData,
+	): Promise<void> {
+		// Only process status updates for outgoing messages
+		if (!data.fromMe) {
+			this.logger.debug(`Ignoring status update for incoming message`);
+			return;
+		}
+
+		const evolutionMsgId = data.keyId || data.messageId;
+		if (!evolutionMsgId) {
+			this.logger.warn(`No message ID in status update`);
+			return;
+		}
+
+		this.logger.log(`Message status update: ${evolutionMsgId} -> ${data.status}`);
+
+		// Look up the GHL message ID from our mapping
+		const sentMessage = await this.prisma.findSentMessageByEvolutionId(evolutionMsgId);
+		if (!sentMessage) {
+			this.logger.debug(`No mapping found for Evolution message ${evolutionMsgId} - may be from workflow or pre-existing`);
+			return;
+		}
+
+		// Map Evolution status to GHL status
+		const ghlStatus = this.mapEvolutionStatusToGhl(data.status);
+		if (!ghlStatus) {
+			this.logger.debug(`Ignoring status ${data.status} - not relevant for GHL`);
+			return;
+		}
+
+		// Update the message status in GHL
+		try {
+			const { client } = await this.getValidGhlClient(sentMessage.instance.user);
+			await client.put(
+				`/conversations/messages/${sentMessage.ghlMessageId}/status`,
+				{ status: ghlStatus },
+			);
+			this.logger.log(`Updated GHL message ${sentMessage.ghlMessageId} status to ${ghlStatus}`);
+		} catch (error) {
+			this.logger.error(`Failed to update GHL message status: ${error.message}`);
+			// Don't throw - status updates are best-effort
+		}
+	}
+
+	/**
+	 * Maps Evolution API message status to GHL status
+	 */
+	private mapEvolutionStatusToGhl(evolutionStatus: string): string | null {
+		switch (evolutionStatus.toUpperCase()) {
+			case "READ":
+			case "PLAYED":
+				return "read";
+			case "DELIVERY_ACK":
+			case "DELIVERED":
+				return "delivered";
+			case "SERVER_ACK":
+			case "SENT":
+				return "sent";
+			case "PENDING":
+				return "pending";
+			case "ERROR":
+			case "FAILED":
+				return "failed";
+			default:
+				return null;
 		}
 	}
 
@@ -604,13 +684,14 @@ export class GhlService {
 		}
 
 		const chatId = formatPhoneNumber(phone);
+		let evolutionMsgId: string | undefined;
 
 		try {
 			if (webhookData.attachments?.length) {
 				for (const attachmentUrl of webhookData.attachments) {
 					// Extract filename from URL or use default
 					const fileName = attachmentUrl.split('/').pop() || "file";
-					await client.sendFileByUrl({
+					const response = await client.sendFileByUrl({
 						chatId,
 						file: {
 							url: attachmentUrl,
@@ -618,15 +699,33 @@ export class GhlService {
 						},
 						caption: webhookData.message,
 					});
+					evolutionMsgId = response.idMessage;
 				}
 			} else if (webhookData.message) {
-				await client.sendMessage({
+				const response = await client.sendMessage({
 					chatId,
 					message: webhookData.message,
 				});
+				evolutionMsgId = response.idMessage;
 			}
 
-			this.logger.log(`Message sent to WhatsApp: ${chatId}`);
+			this.logger.log(`Message sent to WhatsApp: ${chatId}, Evolution ID: ${evolutionMsgId}`);
+
+			// Store message ID mapping for read receipts
+			if (evolutionMsgId && webhookData.messageId && evolutionMsgId !== "sent") {
+				try {
+					await this.prisma.createSentMessage({
+						ghlMessageId: webhookData.messageId,
+						evolutionMsgId: evolutionMsgId,
+						instanceId: instance.id,
+						contactPhone: phone,
+					});
+					this.logger.debug(`Stored message mapping: GHL ${webhookData.messageId} -> Evolution ${evolutionMsgId}`);
+				} catch (mapError) {
+					// Don't fail the send if we can't store the mapping
+					this.logger.warn(`Failed to store message mapping: ${mapError.message}`);
+				}
+			}
 		} catch (error) {
 			this.logger.error(`Failed to send WhatsApp message: ${error.message}`);
 			throw new HttpException("Failed to send WhatsApp message", HttpStatus.INTERNAL_SERVER_ERROR);

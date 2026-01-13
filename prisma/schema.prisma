@@ -39,6 +39,22 @@ model Instance {
   settings        Json?          @default("{}") @db.Json
   name            String?
   createdAt       DateTime       @default(now())
+  sentMessages    SentMessage[]
 
   @@index([userId])
+}
+
+// Tracks outbound messages for read receipt mapping
+// Maps GHL messageId <-> Evolution/WhatsApp messageId
+model SentMessage {
+  id              BigInt    @id @default(autoincrement())
+  ghlMessageId    String    @unique          // GHL's message ID
+  evolutionMsgId  String    @db.VarChar(100) // Evolution/WhatsApp message ID
+  instanceId      BigInt
+  instance        Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  contactPhone    String?   @db.VarChar(50)  // For debugging
+  createdAt       DateTime  @default(now())
+
+  @@index([evolutionMsgId])
+  @@index([instanceId])
 }

@@ -161,11 +161,38 @@ export interface EvolutionConnectionUpdateData {
 }
 
 /**
+ * Message status values from Evolution API
+ * Maps to WhatsApp message acknowledgment states
+ */
+export type EvolutionMessageStatus = 
+	| "ERROR"       // Message failed to send
+	| "PENDING"     // Message is pending
+	| "SERVER_ACK"  // Server received the message
+	| "DELIVERY_ACK" // Message delivered to recipient's device
+	| "READ"        // Recipient read the message
+	| "PLAYED"      // Audio/video was played
+	| "DELETED";    // Message was deleted
+
+/**
+ * MESSAGES_UPDATE webhook data - for delivery/read receipts
+ */
+export interface EvolutionMessagesUpdateData {
+	keyId: string;           // The message ID (same as key.id from sent message)
+	remoteJid: string;       // Chat ID
+	fromMe: boolean;         // Should be true for outbound status updates
+	participant?: string;    // For group messages
+	status: EvolutionMessageStatus;
+	instanceId?: string;
+	messageId?: string;      // Alternative field name for message ID
+}
+
+/**
  * Union type for all webhook data types
  */
 export type EvolutionWebhookData =
 	| EvolutionMessagesUpsertData
 	| EvolutionConnectionUpdateData
+	| EvolutionMessagesUpdateData
 	| Record<string, unknown>;
 
 /**
@@ -196,9 +223,17 @@ export function isConnectionUpdateData(data: EvolutionWebhookData): data is Evol
 }
 
 /**
+ * Type guard for MESSAGES_UPDATE data (delivery/read receipts)
+ */
+export function isMessagesUpdateData(data: EvolutionWebhookData): data is EvolutionMessagesUpdateData {
+	return 'keyId' in data && 'status' in data;
+}
+
+/**
  * Allowed webhook event types for processing
  */
 export const ALLOWED_EVOLUTION_EVENTS: EvolutionWebhookEvent[] = [
 	"MESSAGES_UPSERT",
 	"CONNECTION_UPDATE",
+	"MESSAGES_UPDATE",
 ];

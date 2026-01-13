@@ -4,6 +4,7 @@ import {
 	PrismaClient,
 	User,
 	Instance,
+	SentMessage,
 	Prisma,
 } from "@prisma/client";
 import { UserCreateData, UserUpdateData } from "../types";
@@ -145,5 +146,72 @@ export class PrismaService
 			data: {name},
 			include: {user: true},
 		});
+	}
+
+	// ============================================================================
+	// SentMessage Methods - For read receipt tracking
+	// ============================================================================
+
+	/**
+	 * Store a sent message mapping (GHL messageId <-> Evolution messageId)
+	 */
+	async createSentMessage(data: {
+		ghlMessageId: string;
+		evolutionMsgId: string;
+		instanceId: bigint;
+		contactPhone?: string;
+	}): Promise<SentMessage> {
+		return this.sentMessage.create({
+			data: {
+				ghlMessageId: data.ghlMessageId,
+				evolutionMsgId: data.evolutionMsgId,
+				instanceId: data.instanceId,
+				contactPhone: data.contactPhone,
+			},
+		});
+	}
+
+	/**
+	 * Find a sent message by Evolution/WhatsApp message ID
+	 */
+	async findSentMessageByEvolutionId(evolutionMsgId: string): Promise<(SentMessage & { instance: Instance & { user: User } }) | null> {
+		return this.sentMessage.findFirst({
+			where: { evolutionMsgId },
+			include: { 
+				instance: {
+					include: { user: true }
+				}
+			},
+		});
+	}
+
+	/**
+	 * Find a sent message by GHL message ID
+	 */
+	async findSentMessageByGhlId(ghlMessageId: string): Promise<SentMessage | null> {
+		return this.sentMessage.findUnique({
+			where: { ghlMessageId },
+		});
+	}
+
+	/**
+	 * Clean up old sent messages (older than 7 days)
+	 * Can be called periodically to prevent table bloat
+	 */
+	async cleanupOldSentMessages(daysOld: number = 7): Promise<number> {
+		const cutoffDate = new Date();
+		cutoffDate.setDate(cutoffDate.getDate() - daysOld);
+		
+		const result = await this.sentMessage.deleteMany({
+			where: {
+				createdAt: { lt: cutoffDate }
+			}
+		});
+		
+		if (result.count > 0) {
+			this.logger.log(`Cleaned up ${result.count} old sent message records`);
+		}
+		
+		return result.count;
 	}
 }

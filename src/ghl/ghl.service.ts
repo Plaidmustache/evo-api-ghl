@@ -566,10 +566,14 @@ export class GhlService {
 		}
 
 		// Step 2: Send inbound message
+		const conversationProviderId = this.configService.get<string>("GHL_CONVERSATION_PROVIDER_ID");
+		
 		try {
-			await client.post(`/conversations/${conversationId}/messages/inbound`, {
-				type: message.type || "Custom",
-				message: message.text || message.body,
+			await client.post("/conversations/messages/inbound", {
+				type: "Custom",
+				conversationId: conversationId,
+				conversationProviderId: conversationProviderId,
+				body: message.text || message.body,
 				attachments: message.attachments,
 			});
 			this.logger.log(`Message sent to GHL conversation ${conversationId}`);

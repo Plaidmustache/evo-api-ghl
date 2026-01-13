@@ -573,7 +573,7 @@ export class GhlService {
 				type: "Custom",
 				conversationId: conversationId,
 				conversationProviderId: conversationProviderId,
-				body: message.text || message.body,
+				message: message.text || message.body,
 				attachments: message.attachments,
 			});
 			this.logger.log(`Message sent to GHL conversation ${conversationId}`);

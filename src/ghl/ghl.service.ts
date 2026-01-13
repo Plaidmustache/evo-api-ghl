@@ -462,13 +462,16 @@ export class GhlService {
 		// Update the message status in GHL
 		try {
 			const { client } = await this.getValidGhlClient(sentMessage.instance.user);
-			await client.put(
+			const response = await client.put(
 				`/conversations/messages/${sentMessage.ghlMessageId}/status`,
 				{ status: ghlStatus },
 			);
-			this.logger.log(`Updated GHL message ${sentMessage.ghlMessageId} status to ${ghlStatus}`);
+			this.logger.log(`Updated GHL message ${sentMessage.ghlMessageId} status to ${ghlStatus} - Response: ${JSON.stringify(response.data)}`);
 		} catch (error) {
 			this.logger.error(`Failed to update GHL message status: ${error.message}`);
+			if (error.response) {
+				this.logger.error(`GHL API Response: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
+			}
 			// Don't throw - status updates are best-effort
 		}
 	}

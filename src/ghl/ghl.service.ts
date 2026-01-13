@@ -714,13 +714,13 @@ export class GhlService {
 
 			this.logger.log(`Message sent to WhatsApp: ${chatId}, Evolution ID: ${evolutionMsgId}`);
 
-			// Immediately update status to "sent" (like GREEN-API does)
+			// Immediately update status to "delivered" (like GREEN-API does - they skip "sent")
 			try {
 				const { client: ghlClient } = await this.getValidGhlClient(instance.user);
-				this.logger.log(`Updating GHL message ${webhookData.messageId} status to sent immediately after send`);
+				this.logger.log(`Updating GHL message ${webhookData.messageId} status to delivered immediately after send`);
 				const statusResponse = await ghlClient.put(
 					`/conversations/messages/${webhookData.messageId}/status`,
-					{ status: "sent" },
+					{ status: "delivered" },
 				);
 				this.logger.log(`Immediate status update response: ${JSON.stringify(statusResponse.data)}`);
 			} catch (statusError) {

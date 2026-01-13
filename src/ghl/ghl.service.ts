@@ -714,20 +714,17 @@ export class GhlService {
 
 			this.logger.log(`Message sent to WhatsApp: ${chatId}, Evolution ID: ${evolutionMsgId}`);
 
-			// Immediately update status to "delivered" (like GREEN-API does - they skip "sent")
+			// Immediately mark as "sent" (message accepted by WhatsApp server)
+			// Real "delivered" and "read" statuses come via Evolution API webhooks
 			try {
 				const { client: ghlClient } = await this.getValidGhlClient(instance.user);
-				this.logger.log(`Updating GHL message ${webhookData.messageId} status to delivered immediately after send`);
-				const statusResponse = await ghlClient.put(
+				await ghlClient.put(
 					`/conversations/messages/${webhookData.messageId}/status`,
-					{ status: "delivered" },
+					{ status: "sent" },
 				);
-				this.logger.log(`Immediate status update response: ${JSON.stringify(statusResponse.data)}`);
+				this.logger.log(`Marked GHL message ${webhookData.messageId} as sent`);
 			} catch (statusError) {
-				this.logger.error(`Failed immediate status update: ${statusError.message}`);
-				if (statusError.response) {
-					this.logger.error(`Status update error response: ${statusError.response.status} - ${JSON.stringify(statusError.response.data)}`);
-				}
+				this.logger.warn(`Failed to mark message as sent: ${statusError.message}`);
 			}
 
 			// Store message ID mapping for read receipts

@@ -4,6 +4,7 @@ import axios, { AxiosInstance, AxiosError } from "axios";
 import { GhlTransformer } from "./ghl.transformer";
 import { PrismaService } from "../prisma/prisma.service";
 import { GhlWebhookDto } from "./dto/ghl-webhook.dto";
+import { extractPhoneFromJid, isLidJid } from "./jid.utils";
 import type { Instance, User, InstanceState } from "@prisma/client";
 import { InstanceState as InstanceStateEnum } from "@prisma/client";
 import { randomBytes } from "crypto";
@@ -514,9 +515,12 @@ export class GhlService {
 				continue;
 			}
 
-			// Extract phone number from remoteJid (format: 31612345678@s.whatsapp.net)
+			// Extract phone number from remoteJid (format: 31612345678@s.whatsapp.net or @lid)
 			const remoteJid = msg.key.remoteJid;
-			const phone = remoteJid.replace(/@s\.whatsapp\.net$/, "").replace(/@g\.us$/, "");
+			const phone = extractPhoneFromJid(remoteJid);
+			if (isLidJid(remoteJid)) {
+				this.logger.warn(`Processing @lid identifier: ${remoteJid} -> ${phone}`);
+			}
 			const name = msg.pushName || phone;
 			const isGroup = remoteJid.endsWith("@g.us");
 
@@ -582,7 +586,7 @@ export class GhlService {
 
 			// Add group sender info if it's a group message
 			if (isGroup && msg.key.participant) {
-				const senderPhone = msg.key.participant.replace(/@s\.whatsapp\.net$/, "");
+				const senderPhone = extractPhoneFromJid(msg.key.participant);
 				messageText = `${name} (+${senderPhone}):\n${messageText}`;
 			}
 

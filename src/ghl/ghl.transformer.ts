@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { GhlWebhookDto } from "./dto/ghl-webhook.dto";
 import { GhlPlatformMessage } from "../types";
+import { extractPhoneFromJid as extractPhone, isGroupJid } from "./jid.utils";
 
 // Type definitions for Evolution API messages
 export interface EvolutionMessage {
@@ -61,6 +62,21 @@ function extractPhoneNumberFromVCard(vcard: string): string | null {
 export class GhlTransformer
 	implements MessageTransformer<GhlWebhookDto, GhlPlatformMessage> {
 	private readonly logger = new Logger(GhlTransformer.name);
+
+	/**
+	 * Extracts phone number from WhatsApp JID
+	 * Handles all formats: @s.whatsapp.net, @c.us, @g.us, @lid
+	 */
+	extractPhoneFromJid(jid: string): string {
+		return extractPhone(jid);
+	}
+
+	/**
+	 * Checks if JID represents a group chat
+	 */
+	isGroupMessage(jid: string): boolean {
+		return isGroupJid(jid);
+	}
 
 	/**
 	 * Transforms an Evolution API webhook to a GHL platform message
@@ -265,7 +281,7 @@ export class GhlTransformer
 			}
 
 			if (isGroup) {
-				messageText = `${senderName} (+${senderNumber.split("@c.us")[0]}):\n\n ${messageText}`;
+				messageText = `${senderName} (+${extractPhone(senderNumber)}):\n\n ${messageText}`;
 			}
 
 			return {
@@ -279,7 +295,7 @@ export class GhlTransformer
 		}
 
 		if (webhook.typeWebhook === "incomingCall") {
-			const callerPhone = webhook.from?.replace("@c.us", "") || "unknown";
+			const callerPhone = extractPhone(webhook.from) || "unknown";
 			const callStatus = webhook.status;
 			switch (callStatus) {
 				case "offer":

@@ -154,9 +154,10 @@ export class EvolutionApiClient {
 	/**
 	 * Format phone number for Evolution API
 	 * Evolution API expects phone numbers without @ suffixes
+	 * Handles all JID formats: @s.whatsapp.net, @c.us, @g.us, @lid
 	 */
 	private formatPhone(phone: string): string {
-		// Remove @c.us or @g.us suffix if present
-		return phone.replace(/@[cgs]\.us$/, "");
+		// Remove any JID suffix by splitting on '@'
+		return phone.split("@")[0];
 	}
 }

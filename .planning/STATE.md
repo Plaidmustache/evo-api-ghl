@@ -2,55 +2,41 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2025-01-17)
+See: .planning/PROJECT.md (updated 2026-01-18)
 
 **Core value:** Every patient message reaches the practice, and practitioners see real delivery/read status
-**Current focus:** Phase 3 - Status Webhook Flow
+**Current focus:** Planning next milestone
 
 ## Current Position
 
-Phase: 3 of 3 (Status Webhook Flow)
-Plan: 1 of 1 in current phase
-Status: Complete - All v1 requirements verified
-Last activity: 2025-01-18 - Completed 03-01-PLAN.md (verification)
+Phase: v1.0 complete — awaiting next milestone definition
+Plan: Not started
+Status: Ready for /gsd:new-milestone
+Last activity: 2026-01-18 — v1.0 milestone archived
 
-Progress: [██████████] 100%
+Progress: [██████████] 100% (v1.0)
+
+## Milestone History
+
+| Milestone | Status | Shipped |
+|-----------|--------|---------|
+| v1.0 Bug Fixes | Complete | 2026-01-18 |
+
+See: .planning/MILESTONES.md for full history
 
 ## Performance Metrics
 
-**Velocity:**
+**v1.0 Velocity:**
 - Total plans completed: 2
-- Average duration: ~7.5 minutes
-- Total execution time: ~15 minutes
-
-**By Phase:**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 01 | 1 | ~10 min | ~10 min |
-| 02 | 0 | N/A | N/A (pre-existing) |
-| 03 | 1 | ~5 min | ~5 min (verification only) |
-
-**Recent Trend:**
-- Last 5 plans: 01-01 (~10 min), 03-01 (~5 min)
-- Trend: Fast verification
-
-*Updated after each plan completion*
+- Total phases: 3 (Phase 2 pre-existing)
+- Total requirements: 16 satisfied
+- Timeline: ~2 hours
 
 ## Accumulated Context
 
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
-
-- Use `split('@')[0]` for phone extraction (handles all JID formats uniformly)
-- Add MessageMapping table with Evolution ID as unique index
-- Remove fake status, rely on real webhooks
-- Created jid.utils.ts as centralized utility (01-01)
-- Added @lid warning log for monitoring Android traffic (01-01)
-- SentMessage model uses simpler design without local status field (02)
-- Status forwarded directly to GHL, not stored locally (02)
 
 ### Pending Todos
 
@@ -60,23 +46,28 @@ None.
 
 None.
 
+## Operational Checklist (Post-v1.0)
+
+- [ ] Run `prisma migrate deploy` on production
+- [ ] Verify SentMessage table created
+- [ ] Monitor logs for @lid warnings
+- [ ] Schedule cleanupOldSentMessages cron job (tech debt)
+
 ## Session Continuity
 
-Last session: 2025-01-18
-Stopped at: Project complete - all v1 requirements verified
+Last session: 2026-01-18
+Stopped at: v1.0 milestone complete
 Resume file: None
 
-## Project Completion Summary
+## Next Steps
 
-All v1 requirements complete:
+Run `/gsd:new-milestone` to start v2.0 planning:
+- Questioning phase for new requirements
+- Research phase for implementation approaches
+- Requirements definition
+- Roadmap creation
 
-| Phase | Description | Status |
-|-------|-------------|--------|
-| 1 | @lid Handling | Complete (01-01) |
-| 2 | Database Schema | Complete (pre-existing) |
-| 3 | Status Webhook Flow | Complete (03-01 verification) |
-
-**Operational Notes:**
-- Run `prisma migrate deploy` on production to create SentMessage table
-- Monitor for "No mapping found" debug logs (indicates workflow/pre-migration messages)
-- Consider scheduling `cleanupOldSentMessages()` cron job post-v1
+Candidates for v2.0:
+- LID-V2-01: Persistent LID-to-phone mapping table
+- STATUS-V2-01: Failed message retry logic
+- STATUS-V2-02: Status change audit log

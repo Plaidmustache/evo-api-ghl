@@ -1,8 +1,8 @@
-# evo-api-ghl Bug Fixes
+# evo-api-ghl
 
 ## What This Is
 
-Critical bug fixes for an existing WhatsApp-to-GHL (GoHighLevel) adapter used by healthcare practices. The adapter bridges Evolution API (WhatsApp) with GHL CRM, enabling patient communication. Two bugs cause silent message loss and broken read receipts.
+WhatsApp-to-GHL (GoHighLevel) adapter for healthcare practices. Bridges Evolution API (WhatsApp) with GHL CRM, enabling patient communication via WhatsApp from within GHL. Handles all WhatsApp identifier formats including Android @lid identifiers and provides real message status tracking.
 
 ## Core Value
 
@@ -22,61 +22,60 @@ Healthcare communication cannot silently fail. Lost messages mean missed appoint
 - Custom page UI embedded in GHL — existing
 - Webhook validation guards — existing
 - Contact upsert (find or create GHL contacts from WhatsApp messages) — existing
+- LID-01: Messages from @lid identifiers (Android users) correctly processed — v1.0
+- LID-02: Phone numbers extracted from @lid, @c.us, @g.us, @s.whatsapp.net formats — v1.0
+- LID-03: @lid messages logged with warning for monitoring — v1.0
+- STATUS-01: SentMessage table stores GHL↔Evolution message ID correlation — v1.0
+- STATUS-02: Message mapping created when outbound message sent — v1.0
+- STATUS-03: MESSAGES_UPDATE webhooks enabled in controller filter — v1.0
+- STATUS-04: Status webhooks processed and mapped to GHL status — v1.0
+- STATUS-05: GHL message status updated with real delivered/read timestamps — v1.0
+- STATUS-06: Fake status updates removed (no more setTimeout/hardcoded "delivered") — v1.0
 
 ### Active
 
-- [ ] **LID-01**: Messages from @lid identifiers (Android users) correctly processed
-- [ ] **LID-02**: Phone numbers extracted from @lid, @c.us, @g.us, @s.whatsapp.net formats
-- [ ] **LID-03**: @lid messages logged with warning for monitoring
-- [ ] **STATUS-01**: MessageMapping table stores GHL↔Evolution message ID correlation
-- [ ] **STATUS-02**: Message mapping created when outbound message sent
-- [ ] **STATUS-03**: MESSAGES_UPDATE webhooks enabled in controller filter
-- [ ] **STATUS-04**: Status webhooks processed and mapped to GHL status
-- [ ] **STATUS-05**: GHL message status updated with real delivered/read timestamps
-- [ ] **STATUS-06**: Fake status updates removed (no more setTimeout/hardcoded "delivered")
+(None — next milestone TBD)
 
 ### Out of Scope
 
 - Evolution API changes — adapter-layer fixes only
-- New features — bug fixes only, no feature additions
+- New features beyond bug fixes — v1.0 was bug fixes only
 - UI changes — backend fixes only
 - Performance optimization — correctness first
-- Test coverage — will add targeted tests for the fixes
+- Comprehensive test suite — targeted tests only
 
 ## Context
 
-**The @lid Problem:**
-WhatsApp identifies some users (mostly Android, ~30-40% of users) with `@lid` format (`267215769174167@lid`) instead of phone numbers (`31687483489@s.whatsapp.net`). The adapter's regex `/@[cg]\.us$/` only handles `@c.us` and `@g.us`, leaving @lid identifiers intact. This creates invalid phone numbers like `+267215769174167@lid` that GHL rejects, silently dropping the message.
+**Current State (v1.0 shipped):**
 
-**The Status Problem:**
-When a message is sent from GHL:
-1. Evolution API returns `idMessage` (e.g., `"3EB03E03EF123456"`)
-2. The adapter does NOT store this ID
-3. When Evolution API sends `MESSAGES_UPDATE` webhook with delivery/read status, the adapter cannot correlate it back to the GHL message
-4. Result: GHL never learns the real status
+Shipped v1.0 with ~5,569 LOC TypeScript. Tech stack: NestJS 11, Prisma 6.6, MySQL 8.0.
 
-Currently the adapter lies — it hardcodes "delivered" status immediately after sending, masking real delivery failures.
+**v1.0 solved two critical bugs:**
+1. **@lid message loss** — Android WhatsApp users (~30-40%) were silently dropping messages due to regex that didn't handle @lid format. Now uses `split('@')[0]` for all JID formats.
+2. **Fake status** — GHL showed hardcoded "delivered" after 5 seconds instead of real status. Now tracks actual delivered/read via MESSAGES_UPDATE webhooks.
 
-**Research completed:**
-- `.planning/research/task1-lid-research.md` — @lid handling analysis across Evolution API, WAHA, and GREEN-API
-- `.planning/research/task2-status-flow-research.md` — status webhook flow analysis
-- `.planning/research/fix-action-plan.md` — complete implementation plan with exact code changes
+**Operational Notes:**
+- Run `prisma migrate deploy` on production for SentMessage table
+- Monitor for @lid warnings (new visibility)
+- Consider `cleanupOldSentMessages()` cron job (tech debt)
 
 ## Constraints
 
-- **Stack**: NestJS 11, Prisma 6.6, MySQL 8.0, TypeScript 5.7 — existing stack, no changes
+- **Stack**: NestJS 11, Prisma 6.6, MySQL 8.0, TypeScript 5.7 — existing stack
 - **Dependencies**: None — all fixes are adapter-layer, no Evolution API changes needed
 - **Deployment**: Docker-based, migrations run on startup
-- **Backwards Compatibility**: Existing `Instance` and `User` models must not break
+- **Backwards Compatibility**: Existing `Instance` and `User` models preserved
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Use `split('@')[0]` not regex for phone extraction | Handles all JID formats (@lid, @c.us, @g.us, @s.whatsapp.net) uniformly | — Pending |
-| Add MessageMapping table with Evolution ID as unique index | Enables fast lookup when status webhooks arrive | — Pending |
-| Remove fake status, rely on real webhooks | Truthful status is better than false confidence | — Pending |
-| Add jid.utils.ts utility file | Centralizes JID handling, prevents future regex drift | — Pending |
+| Use `split('@')[0]` not regex for phone extraction | Handles all JID formats (@lid, @c.us, @g.us, @s.whatsapp.net) uniformly | Good — v1.0 |
+| Add SentMessage table with Evolution ID as unique index | Enables fast lookup when status webhooks arrive | Good — v1.0 |
+| Remove fake status, rely on real webhooks | Truthful status is better than false confidence | Good — v1.0 |
+| Add jid.utils.ts utility file | Centralizes JID handling, prevents future regex drift | Good — v1.0 |
+| Best-effort status updates (no throw on errors) | Status tracking shouldn't break message flow | Good — v1.0 |
+| SentMessage without local status field | Forward status directly to GHL, don't duplicate | Good — v1.0 |
 
 ---
-*Last updated: 2025-01-17 after initialization*
+*Last updated: 2026-01-18 after v1.0 milestone*

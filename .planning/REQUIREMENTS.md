@@ -9,10 +9,10 @@ Requirements for this bug fix release. Each maps to roadmap phases.
 
 ### @lid Identifier Handling
 
-- [ ] **LID-01**: Create jid.utils.ts with phone extraction utilities
-- [ ] **LID-02**: Update ghl.service.ts to use `split('@')[0]` for all phone extraction
-- [ ] **LID-03**: Update ghl.transformer.ts to detect and log @lid identifiers
-- [ ] **LID-04**: All JID formats handled uniformly (@lid, @c.us, @g.us, @s.whatsapp.net)
+- [x] **LID-01**: Create jid.utils.ts with phone extraction utilities
+- [x] **LID-02**: Update ghl.service.ts to use `split('@')[0]` for all phone extraction
+- [x] **LID-03**: Update ghl.transformer.ts to detect and log @lid identifiers
+- [x] **LID-04**: All JID formats handled uniformly (@lid, @c.us, @g.us, @s.whatsapp.net)
 
 ### Message Status Tracking
 
@@ -65,10 +65,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LID-01 | Phase 1 | Pending |
-| LID-02 | Phase 1 | Pending |
-| LID-03 | Phase 1 | Pending |
-| LID-04 | Phase 1 | Pending |
+| LID-01 | Phase 1 | Complete |
+| LID-02 | Phase 1 | Complete |
+| LID-03 | Phase 1 | Complete |
+| LID-04 | Phase 1 | Complete |
 | STATUS-01 | Phase 2 | Pending |
 | STATUS-02 | Phase 2 | Pending |
 | STATUS-03 | Phase 2 | Pending |
@@ -90,4 +90,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2025-01-17*
-*Last updated: 2025-01-17 after roadmap creation*
+*Last updated: 2025-01-17 — Phase 1 complete*

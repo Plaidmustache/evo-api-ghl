@@ -10,7 +10,7 @@ This roadmap delivers two critical bug fixes for the WhatsApp-to-GHL adapter: @l
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 1: @lid Handling** - Fix phone extraction for Android users
+- [x] **Phase 1: @lid Handling** - Fix phone extraction for Android users
 - [ ] **Phase 2: Database Schema** - Add MessageMapping table for status correlation
 - [ ] **Phase 3: Status Webhook Flow** - Enable and handle real delivery/read status
 
@@ -28,7 +28,7 @@ This roadmap delivers two critical bug fixes for the WhatsApp-to-GHL adapter: @l
 **Plans**: 1 plan
 
 Plans:
-- [ ] 01-01-PLAN.md - Create JID utilities and fix phone extraction
+- [x] 01-01-PLAN.md - Create JID utilities and fix phone extraction
 
 ### Phase 2: Database Schema
 **Goal**: Message ID correlation table exists and Prisma service can read/write mappings
@@ -69,10 +69,10 @@ Phases execute in numeric order: 1 -> 2 -> 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. @lid Handling | 0/1 | Planned | - |
+| 1. @lid Handling | 1/1 | Complete ✓ | 2025-01-17 |
 | 2. Database Schema | 0/2 | Not started | - |
 | 3. Status Webhook Flow | 0/3 | Not started | - |
 
 ---
 *Roadmap created: 2025-01-17*
-*Last updated: 2025-01-17*
+*Last updated: 2025-01-17 — Phase 1 complete*

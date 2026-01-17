@@ -25,10 +25,10 @@ This roadmap delivers two critical bug fixes for the WhatsApp-to-GHL adapter: @l
   2. Contact created with valid phone number (no @lid suffix in GHL)
   3. Logs show warning when @lid identifier processed
   4. Reply from GHL reaches the Android user
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 01-01: Create jid.utils.ts and update phone extraction
+- [ ] 01-01-PLAN.md - Create JID utilities and fix phone extraction
 
 ### Phase 2: Database Schema
 **Goal**: Message ID correlation table exists and Prisma service can read/write mappings
@@ -69,7 +69,7 @@ Phases execute in numeric order: 1 -> 2 -> 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. @lid Handling | 0/1 | Not started | - |
+| 1. @lid Handling | 0/1 | Planned | - |
 | 2. Database Schema | 0/2 | Not started | - |
 | 3. Status Webhook Flow | 0/3 | Not started | - |
 

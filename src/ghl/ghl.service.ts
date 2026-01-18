@@ -718,20 +718,8 @@ export class GhlService {
 
 			this.logger.log(`Message sent to WhatsApp: ${chatId}, Evolution ID: ${evolutionMsgId}`);
 
-			// Immediately mark as "sent" (message accepted by WhatsApp server)
-			// Real "delivered" and "read" statuses come via Evolution API webhooks
-			try {
-				const { client: ghlClient } = await this.getValidGhlClient(instance.user);
-				await ghlClient.put(
-					`/conversations/messages/${webhookData.messageId}/status`,
-					{ status: "sent" },
-				);
-				this.logger.log(`Marked GHL message ${webhookData.messageId} as sent`);
-			} catch (statusError) {
-				this.logger.warn(`Failed to mark message as sent: ${statusError.message}`);
-			}
-
-			// Store message ID mapping for read receipts
+			// Store message ID mapping FIRST - before any other API calls
+			// This prevents race condition where status webhook arrives before mapping exists
 			if (evolutionMsgId && webhookData.messageId && evolutionMsgId !== "sent") {
 				try {
 					await this.prisma.createSentMessage({
@@ -745,6 +733,19 @@ export class GhlService {
 					// Don't fail the send if we can't store the mapping
 					this.logger.warn(`Failed to store message mapping: ${mapError.message}`);
 				}
+			}
+
+			// Now mark as "sent" in GHL (slower network call)
+			// Real "delivered" and "read" statuses come via Evolution API webhooks
+			try {
+				const { client: ghlClient } = await this.getValidGhlClient(instance.user);
+				await ghlClient.put(
+					`/conversations/messages/${webhookData.messageId}/status`,
+					{ status: "sent" },
+				);
+				this.logger.log(`Marked GHL message ${webhookData.messageId} as sent`);
+			} catch (statusError) {
+				this.logger.warn(`Failed to mark message as sent: ${statusError.message}`);
 			}
 		} catch (error) {
 			this.logger.error(`Failed to send WhatsApp message: ${error.message}`);

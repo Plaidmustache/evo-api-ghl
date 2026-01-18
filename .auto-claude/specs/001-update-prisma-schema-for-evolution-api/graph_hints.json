@@ -1,7 +1,0 @@
-{
-  "enabled": true,
-  "query": "Update the database schema and types to support Evolution API instead of GREEN-API.\n\n## Changes to prisma/schema.prisma:\n\n1. Change the Instance model:\n   - Remove `idInstance BigInt @unique` \n   - Add `instanceName String @unique` (Evolution API uses string names like \"my-instance\")\n   - Remove `apiTokenInstance String`\n   - Add `evolutionApiUrl String` (base URL of the Evolution API server)\n   - Add `evolutionApiKey String` (API key for authentication)\n\n2. Update InstanceState enum to match Evolution API states:\n   - Change from: notAuthorized, authorized, yellowCard, blocked, starting\n   - Change to: open, close, connecting\n\n## Changes to src/types.ts:\n\nAdd new Evolution API types:\n- EvolutionWebhookPayload (for MESSAGES_UPSERT, CONNECTION_UPDATE events)\n- EvolutionMessageData (key, pushName, message, messageType, messageTimestamp)\n- EvolutionConnectionState (state: 'open' | 'close' | 'connecting')\n\n## Context:\nThis project is adapting a GREEN-API GHL integration to use Evolution API instead. Both are Baileys-based WhatsApp APIs but have different data structures. The instance identification changes from numeric ID + token to string name + global API key.\n\nAfter schema changes, run: npx prisma generate",
-  "hints": [],
-  "hint_count": 0,
-  "created_at": "2026-01-11T15:33:03.217795"
-}
